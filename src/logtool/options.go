@@ -18,8 +18,8 @@ type SearchOptions struct {
 	LastPath string `json:"lastPath" form:"lastPath"`
 	LastLine int64  `json:"lastLine" form:"lastLine"`
 
-	StartBound       string `json:"-" form:"-"`
-	EndBound         string `json:"-" form:"-"`
+	StartBound        string `json:"-" form:"-"`
+	EndBound          string `json:"-" form:"-"`
 	TimeBoundsInvalid bool   `json:"-" form:"-"`
 }
 

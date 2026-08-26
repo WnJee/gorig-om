@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/cronx"
+	"github.com/jom-io/gorig/global/variable"
 	configure "github.com/jom-io/gorig/utils/cofigure"
 	"github.com/jom-io/gorig/utils/errors"
 	"github.com/jom-io/gorig/utils/logger"
@@ -20,7 +21,10 @@ import (
 	"time"
 )
 
-var host *Serv
+var (
+	hostOnce sync.Once
+	hostInst *Serv
+)
 
 type Serv struct {
 	storage cache.Pager[ResUsage]
@@ -31,15 +35,18 @@ var (
 )
 
 func Host() *Serv {
-	if host == nil {
-		return &Serv{
+	hostOnce.Do(func() {
+		hostInst = &Serv{
 			storage: cache.NewPager[ResUsage](context.Background(), cache.Sqlite),
 		}
-	}
-	return host
+	})
+	return hostInst
 }
 
-func init() {
+func Init() {
+	if variable.OMKey == "" {
+		return
+	}
 
 	getString := configure.GetString("om.host.max_period", "720h")
 	if len(getString) > 0 {

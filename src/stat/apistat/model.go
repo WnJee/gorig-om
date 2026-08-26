@@ -11,10 +11,10 @@ type ApiLatencyStat struct {
 	At              int64  `json:"at" idx:"at" idx_group:"at_method_uri"` // minute bucket, unix seconds
 	Method          string `json:"method" idx_group:"at_method_uri"`      // HTTP method
 	URI             string `json:"uri" idx_group:"at_method_uri"`         // normalized path
-	Count           int64  `json:"count"`      // total requests
-	CountSlow       int64  `json:"countSlow"`  // requests over slow threshold
-	SumLatency      int64  `json:"sumLatency"` // total latency ms
-	MaxLatency      int64  `json:"maxLatency"` // max latency ms
+	Count           int64  `json:"count"`                                 // total requests
+	CountSlow       int64  `json:"countSlow"`                             // requests over slow threshold
+	SumLatency      int64  `json:"sumLatency"`                            // total latency ms
+	MaxLatency      int64  `json:"maxLatency"`                            // max latency ms
 	Count2xx        int64  `json:"count2xx"`
 	SumLatency2xx   int64  `json:"sumLatency2xx"`
 	MaxLatency2xx   int64  `json:"maxLatency2xx"`

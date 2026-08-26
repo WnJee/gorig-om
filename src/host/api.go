@@ -9,10 +9,7 @@ import (
 
 func Usage(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	pageReq, err := apix.GetPageReq(ctx)
-	if err != nil {
-		return
-	}
+	pageReq, _ := apix.GetPageReq(ctx)
 
 	resUsage, err := Host().Page(ctx, pageReq.Page, pageReq.Size)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, resUsage, err)
@@ -20,13 +17,10 @@ func Usage(ctx *gin.Context) {
 
 func TimeRange(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	start, err := apix.GetParamInt64(ctx, "start", apix.Force)
-	end, err := apix.GetParamInt64(ctx, "end", apix.Force)
-	unit, err := apix.GetParamStr(ctx, "unit", "day")
-	filter, err := apix.GetParamArray[ResType](ctx, "filter", apix.Force)
-	if err != nil {
-		return
-	}
+	start, _ := apix.GetParamInt64(ctx, "start", apix.Force)
+	end, _ := apix.GetParamInt64(ctx, "end", apix.Force)
+	unit, _ := apix.GetParamStr(ctx, "unit", "day")
+	filter, _ := apix.GetParamArray[ResType](ctx, "filter", apix.Force)
 
 	resUsage, err := Host().TimeRange(ctx, start, end, cache.Granularity(unit), filter...)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, resUsage, err)

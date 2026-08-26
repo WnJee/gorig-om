@@ -21,10 +21,6 @@ var Env envService
 type envService struct {
 }
 
-func init() {
-	Env = envService{}
-}
-
 const (
 	GitRepoKey = "git_repo"
 	BranchKey  = "deploy_branch"
@@ -108,6 +104,9 @@ func (c envService) installGit(ctx context.Context, manager string) (string, err
 
 // Branches lists all branches in the git repository
 func (c envService) Branches(ctx context.Context, repoURL string) ([]string, *errors.Error) {
+	if repoURL == "" {
+		return nil, errors.Verify("Repository URL is empty")
+	}
 	logger.Info(ctx, fmt.Sprintf("Listing branches for repository: %s", repoURL))
 
 	// git", "ls-remote", "--heads", repoURL

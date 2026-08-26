@@ -35,22 +35,21 @@ om:
 
 ### 2. Enable OM
 
-You can enable the operations management panel in one of two ways:
+Call `om.Setup()` in your main function before starting the application:
 
-1. Import the package in your main.go:
 ```go
-import _ "github.com/jom-io/gorig-om/src"
-```
-
-2. Or call the setup function in your code:
-```go
-import "github.com/jom-io/gorig-om/src"
+import (
+    "github.com/jom-io/gorig/bootstrap"
+    om "github.com/jom-io/gorig-om/src"
+)
 
 func main() {
     om.Setup()
-    // ... your other code
+    bootstrap.StartUp()
 }
 ```
+
+> `Setup()` is idempotent and safe to call multiple times. If `om.key` is not configured, OM stays completely silent (no routes, no background collectors).
 
 ### 3. Access Panel
 
@@ -113,22 +112,21 @@ om:
 
 ### 2. 启用 OM
 
-您可以通过以下两种方式之一启用运维管理面板：
+在 main 函数中、应用启动前调用 `om.Setup()`：
 
-1. 在 main.go 中导入包：
 ```go
-import _ "github.com/jom-io/gorig-om/src"
-```
-
-2. 或在代码中调用设置函数：
-```go
-import "github.com/jom-io/gorig-om/src"
+import (
+    "github.com/jom-io/gorig/bootstrap"
+    om "github.com/jom-io/gorig-om/src"
+)
 
 func main() {
     om.Setup()
-    // ... 其他代码
+    bootstrap.StartUp()
 }
 ```
+
+> `Setup()` 幂等，可安全重复调用。若未配置 `om.key`，OM 完全静默（不注册路由、不启动任何后台采集）。
 
 ### 3. 访问面板
 

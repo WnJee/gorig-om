@@ -10,9 +10,9 @@ import (
 type StartSrc string
 
 const (
-	StartSrcManual StartSrc = "manual"
-	StartSrcDeploy StartSrc = "deploy"
-	StartSrcCrash  StartSrc = "crash"
+	StartSrcManual  StartSrc = "manual"
+	StartSrcDeploy  StartSrc = "deploy"
+	StartSrcCrash   StartSrc = "crash"
 	StartSrcOveruse StartSrc = "overuse"
 )
 

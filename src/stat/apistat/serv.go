@@ -12,6 +12,7 @@ import (
 	"github.com/jom-io/gorig-om/src/logtool"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/cronx"
+	"github.com/jom-io/gorig/global/variable"
 	"github.com/jom-io/gorig/utils/errors"
 	"github.com/jom-io/gorig/utils/logger"
 	"go.uber.org/zap"
@@ -48,7 +49,11 @@ func S() *Serv {
 	return statServ
 }
 
-func init() {
+func Init() {
+	if variable.OMKey == "" {
+		return
+	}
+
 	cronx.AddCronTask("45 * * * * *", S().Collect, 30*time.Second)
 
 	go func() {

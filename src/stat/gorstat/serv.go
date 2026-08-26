@@ -8,6 +8,7 @@ import (
 
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/cronx"
+	"github.com/jom-io/gorig/global/variable"
 	configure "github.com/jom-io/gorig/utils/cofigure"
 	"github.com/jom-io/gorig/utils/errors"
 	"github.com/jom-io/gorig/utils/logger"
@@ -32,7 +33,11 @@ func S() *Serv {
 	return serv
 }
 
-func init() {
+func Init() {
+	if variable.OMKey == "" {
+		return
+	}
+
 	getString := configure.GetString("om.stat.goroutine.max_period", "720h")
 	if len(getString) > 0 {
 		if getMaxPeriod, err := time.ParseDuration(getString); err == nil {

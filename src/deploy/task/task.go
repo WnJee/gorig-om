@@ -38,8 +38,7 @@ const TimeOut = 10 * time.Minute
 
 var backupCount = 10
 
-func init() {
-	Task = taskService{}
+func Init() {
 	if variable.OMKey == "" {
 		return
 	}
@@ -110,6 +109,9 @@ func (t taskService) Start(ctx context.Context, auto bool) *errors.Error {
 
 func (t taskService) Stop(ctx context.Context, id string) *errors.Error {
 	logger.Info(ctx, fmt.Sprintf("Stopping task: %s", id))
+	if id == "" {
+		return errors.Verify("Task ID is required")
+	}
 	cachePage := cache.NewPager[TaskRecord](ctx, cache.Sqlite)
 	get, err := cachePage.Get(map[string]any{"id": id})
 	if err != nil {
@@ -149,6 +151,9 @@ func (t taskService) Page(ctx context.Context, page, size int64) (*cache.PageCac
 }
 
 func (t taskService) Get(ctx context.Context, id string) (*TaskRecord, *errors.Error) {
+	if id == "" {
+		return nil, errors.Verify("Task ID is required")
+	}
 	cachePage := cache.NewPager[TaskRecord](ctx, cache.Sqlite)
 	result, err := cachePage.Get(map[string]any{"id": id})
 	if err != nil {
@@ -159,6 +164,9 @@ func (t taskService) Get(ctx context.Context, id string) (*TaskRecord, *errors.E
 
 func (t taskService) Rollback(ctx context.Context, id string) *errors.Error {
 	logger.Info(ctx, fmt.Sprintf("Rolling back task: %s", id))
+	if id == "" {
+		return errors.Verify("Task ID is required")
+	}
 	cachePage := cache.NewPager[TaskRecord](ctx, cache.Sqlite)
 	get, err := cachePage.Get(map[string]any{"id": id})
 	if err != nil {

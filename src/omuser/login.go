@@ -23,10 +23,7 @@ type loginCountOut struct {
 
 func Login(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	pwd, e := apix.GetParamType[string](ctx, "pwd", apix.Force)
-	if e != nil {
-		return
-	}
+	pwd, _ := apix.GetParamType[string](ctx, "pwd", apix.Force)
 	result, err := LoginByPwd(ctx, pwd)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, result, err)
 }
@@ -34,6 +31,9 @@ func Login(ctx *gin.Context) {
 func LoginByPwd(ctx *gin.Context, hashPwd string) (sign *string, err *errors.Error) {
 	if variable.OMKey == "" {
 		return nil, errors.Verify("Connection rejected")
+	}
+	if strings.TrimSpace(hashPwd) == "" {
+		return nil, errors.Verify("pwd is required")
 	}
 	IP := fmt.Sprintf("%s-%s", "OM", ctx.ClientIP())
 

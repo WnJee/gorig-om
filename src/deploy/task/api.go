@@ -32,41 +32,29 @@ func Start(ctx *gin.Context) {
 
 func Stop(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	id, e := apix.GetParamType[string](ctx, "id", apix.Force)
-	if e != nil {
-		return
-	}
+	id, _ := apix.GetParamType[string](ctx, "id", apix.Force)
 	err := Task.Stop(ctx, id)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, nil, err)
 }
 
 func Page(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	page, e := apix.GetParamType[int64](ctx, "page", apix.Force)
-	size, e := apix.GetParamType[int64](ctx, "size", apix.Force)
-	if e != nil {
-		return
-	}
+	page, _ := apix.GetParamType[int64](ctx, "page", apix.Force)
+	size, _ := apix.GetParamType[int64](ctx, "size", apix.Force)
 	result, err := Task.Page(ctx, page, size)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, result, err)
 }
 
 func Get(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	id, e := apix.GetParamType[string](ctx, "id", apix.Force)
-	if e != nil {
-		return
-	}
+	id, _ := apix.GetParamType[string](ctx, "id", apix.Force)
 	result, err := Task.Get(ctx, id)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, result, err)
 }
 
 func Rollback(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	id, e := apix.GetParamType[string](ctx, "id", apix.Force)
-	if e != nil {
-		return
-	}
+	id, _ := apix.GetParamType[string](ctx, "id", apix.Force)
 	err := Task.Rollback(ctx, id)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, nil, err)
 }

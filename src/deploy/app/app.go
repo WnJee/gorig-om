@@ -25,15 +25,12 @@ type appService struct {
 
 const startIDKey = "startID"
 
-var watchdogFile string
-
-func init() {
-	App = appService{}
-	watchdogFile = fmt.Sprintf("%s_%s_%s.sh", "watchdog", variable.SysName, sys.RunMode)
-	watchdogFile = strings.ToLower(watchdogFile)
-}
-
 type RunBack func(log string)
+
+func watchdogFile() string {
+	name := fmt.Sprintf("%s_%s_%s.sh", "watchdog", variable.SysName, sys.RunMode)
+	return strings.ToLower(name)
+}
 
 func getRunFileName() (string, *errors.Error) {
 	runFile := fmt.Sprintf("%s-%s.linux64", variable.SysName, sys.RunMode)
@@ -223,7 +220,7 @@ func (a appService) Restart(ctx context.Context, runFile string, runBack RunBack
 	   sleep $check_interval
 	done`, runFile, StartSrcCrash.String(), StartSrcOveruse.String())
 
-	if errW := os.WriteFile(watchdogFile, []byte(content), 0755); errW != nil {
+	if errW := os.WriteFile(watchdogFile(), []byte(content), 0755); errW != nil {
 		return errors.Verify("Failed to write to watchdog file", errW)
 	}
 
@@ -232,7 +229,7 @@ func (a appService) Restart(ctx context.Context, runFile string, runBack RunBack
 	} else {
 		runBack("Stopping watchdog service...")
 	}
-	if _, rErr := deploy.RunCommand(ctx, "pkill", nil, "-9", "-f", watchdogFile); rErr != nil {
+	if _, rErr := deploy.RunCommand(ctx, "pkill", nil, "-9", "-f", watchdogFile()); rErr != nil {
 		return rErr
 	} else {
 		runBack("Watchdog service stopped.")
@@ -268,12 +265,12 @@ func (a appService) RestartSuccess(ctx context.Context, startID, itemID, pid str
 		}
 
 		// Avoid duplicate watchdog processes when falling back
-		if running, _ := deploy.RunCommand(ctx, "pgrep", nil, "-f", watchdogFile); len(strings.TrimSpace(running)) > 0 {
+		if running, _ := deploy.RunCommand(ctx, "pgrep", nil, "-f", watchdogFile()); len(strings.TrimSpace(running)) > 0 {
 			logger.Info(ctx, "Watchdog service already running.")
 			return
 		}
 
-		if _, rErr := deploy.RunCommand(ctx, "bash", nil, "-c", fmt.Sprintf("nohup ./%s > watchdog.out 2>&1 &", watchdogFile)); rErr != nil {
+		if _, rErr := deploy.RunCommand(ctx, "bash", nil, "-c", fmt.Sprintf("nohup ./%s > watchdog.out 2>&1 &", watchdogFile())); rErr != nil {
 			logger.Error(ctx, "Failed to start watchdog service")
 			return
 		} else {
@@ -407,7 +404,7 @@ pkill -9 -f %s
 if [ -f app.pid ]; then
   rm app.pid
 fi
-echo "Service stopped successfully."`, watchdogFile, runFile)
+echo "Service stopped successfully."`, watchdogFile(), runFile)
 
 	if errW := os.WriteFile(stopFile, []byte(content), 0755); errW != nil {
 		return errors.Verify("Failed to write to stop.sh file", errW)
@@ -426,7 +423,7 @@ echo "Service stopped successfully."`, watchdogFile, runFile)
 func (a appService) Clean(ctx context.Context) *errors.Error {
 	logger.Info(ctx, "Cleaning files...")
 
-	files := []string{"restart.sh", "stop.sh", fmt.Sprintf("watchdog_%s.sh", sys.RunMode), "nohup.out", "restart_logs", "watchdog.out", "app.pid"}
+	files := []string{"restart.sh", "stop.sh", watchdogFile(), "nohup.out", "restart_logs", "watchdog.out", "app.pid"}
 	for _, file := range files {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
 			continue

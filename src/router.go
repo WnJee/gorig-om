@@ -1,6 +1,8 @@
 package om
 
 import (
+	"sync"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jom-io/gorig-om/src/deploy/app"
 	dpGit "github.com/jom-io/gorig-om/src/deploy/env"
@@ -15,92 +17,93 @@ import (
 	"github.com/jom-io/gorig-om/src/stat/memstat"
 	"github.com/jom-io/gorig/global/variable"
 	"github.com/jom-io/gorig/httpx"
-	_ "github.com/tidwall/gjson"
 )
 
-func init() {
-	Setup()
-}
+var setupOnce sync.Once
 
 func Setup() {
-	if variable.OMKey == "" {
-		return
-	}
-	httpx.RegisterRouter(func(groupRouter *gin.RouterGroup) {
-		om := groupRouter.Group("om")
-		runApp := om.Group("app")
-		runApp.GET("restarted", app.ReStared)
-		runApp.Use(mid.Sign())
-		runApp.POST("restart", app.Restart)
-		runApp.POST("stop", app.Stop)
-		runApp.GET("restart/logs", app.RestartLogs)
+	setupOnce.Do(func() {
+		if variable.OMKey == "" {
+			return
+		}
+		host.Init()
+		apistat.Init()
+		errstat.Init()
+		gorstat.Init()
+		memstat.Init()
+		dpTask.Init()
 
-		auth := om.Group("auth")
-		auth.POST("connect", omuser.Login)
+		httpx.RegisterRouter(func(groupRouter *gin.RouterGroup) {
+			om := groupRouter.Group("om")
+			runApp := om.Group("app")
+			runApp.GET("restarted", app.ReStared)
+			runApp.Use(mid.Sign())
+			runApp.POST("restart", app.Restart)
+			runApp.POST("stop", app.Stop)
+			runApp.GET("restart/logs", app.RestartLogs)
 
-		om.Use(mid.Sign())
-		log := om.Group("log")
-		log.GET("categories", logtool.GetCategories)
-		log.GET("levels", logtool.GetLevels)
-		log.POST("search", logtool.Search)
-		log.GET("near", logtool.Near)
-		log.GET("monitor", logtool.Monitor)
-		log.GET("download", logtool.Download)
+			auth := om.Group("auth")
+			auth.POST("connect", omuser.Login)
 
-		//git.POST("auto", auto)
+			om.Use(mid.Sign())
+			log := om.Group("log")
+			log.GET("categories", logtool.GetCategories)
+			log.GET("levels", logtool.GetLevels)
+			log.POST("search", logtool.Search)
+			log.GET("near", logtool.Near)
+			log.GET("monitor", logtool.Monitor)
+			log.GET("download", logtool.Download)
 
-		deploy := om.Group("deploy")
+			//git.POST("auto", auto)
 
-		git := deploy.Group("git")
-		git.GET("check", dpGit.CheckGit)
-		git.POST("install", dpGit.Install)
-		deploy.GET("branches", dpGit.Branches)
+			deploy := om.Group("deploy")
 
-		goEnv := deploy.Group("go")
-		goEnv.GET("check", dpGit.CheckGo)
-		goEnv.POST("install", dpGit.InstallGo)
-		goEnv.GET("env", dpGit.GoEnvGet)
-		goEnv.POST("env", dpGit.GoEnvSet)
+			git := deploy.Group("git")
+			git.GET("check", dpGit.CheckGit)
+			git.POST("install", dpGit.Install)
+			deploy.GET("branches", dpGit.Branches)
 
-		//deploy.GET("repository", dpGit.GetRepo)
-		//deploy.POST("repository", dpGit.SetRepo)
+			goEnv := deploy.Group("go")
+			goEnv.GET("check", dpGit.CheckGo)
+			goEnv.POST("install", dpGit.InstallGo)
+			goEnv.GET("env", dpGit.GoEnvGet)
+			goEnv.POST("env", dpGit.GoEnvSet)
 
-		//deploy.POST("branch", dpGit.BranchSet)
-		//deploy.GET("branch", dpGit.BranchGet)
+			//deploy.GET("repository", dpGit.GetRepo)
+			//deploy.POST("repository", dpGit.SetRepo)
 
-		deploy.GET("ssh/key", dpGit.GetSSHKey)
-		deploy.POST("ssh/key", dpGit.GenSSHKey)
+			//deploy.POST("branch", dpGit.BranchSet)
+			//deploy.GET("branch", dpGit.BranchGet)
 
-		task := deploy.Group("task")
-		task.GET("config", dpTask.GetConfig)
-		task.POST("config", dpTask.SaveConfig)
-		task.POST("start", dpTask.Start)
-		task.POST("stop", dpTask.Stop)
-		task.GET("page", dpTask.Page)
-		task.GET("get", dpTask.Get)
-		task.POST("rollback", dpTask.Rollback)
+			deploy.GET("ssh/key", dpGit.GetSSHKey)
+			deploy.POST("ssh/key", dpGit.GenSSHKey)
 
-		h := om.Group("host")
-		h.GET("usage", host.Usage)
-		h.GET("usage/time", host.TimeRange)
+			task := deploy.Group("task")
+			task.GET("config", dpTask.GetConfig)
+			task.POST("config", dpTask.SaveConfig)
+			task.POST("start", dpTask.Start)
+			task.POST("stop", dpTask.Stop)
+			task.GET("page", dpTask.Page)
+			task.GET("get", dpTask.Get)
+			task.POST("rollback", dpTask.Rollback)
 
-		e := om.Group("stat")
-		e.GET("error/time", errstat.TimeRange)
-		e.GET("error/top", errstat.Top)
-		e.GET("api/time", apistat.TimeRange)
-		e.GET("api/summary", apistat.Summary)
-		e.GET("api/top", apistat.Top)
-		e.GET("api/sample", apistat.Sample)
-		//e.GET("client/ip/trend", clientstat.IPTrend)
-		//e.GET("client/ip/top", clientstat.IPTop)
-		//e.GET("client/device", clientstat.DeviceDist)
-		//e.GET("client/region", clientstat.RegionDist)
-		//e.POST("client/ipdb/init", clientstat.IPDBInit)
-		e.GET("goroutine/time", gorstat.TimeRange)
-		e.GET("mem/big/top", memstat.BigTop)
-		e.GET("mem/big/count", memstat.BigCount)
-		e.GET("mem/leak/latest", memstat.LeakLatest)
-		e.GET("mem/leak/count", memstat.LeakCount)
-		e.GET("mem/leak/page", memstat.LeakPage)
+			h := om.Group("host")
+			h.GET("usage", host.Usage)
+			h.GET("usage/time", host.TimeRange)
+
+			e := om.Group("stat")
+			e.GET("error/time", errstat.TimeRange)
+			e.GET("error/top", errstat.Top)
+			e.GET("api/time", apistat.TimeRange)
+			e.GET("api/summary", apistat.Summary)
+			e.GET("api/top", apistat.Top)
+			e.GET("api/sample", apistat.Sample)
+			e.GET("goroutine/time", gorstat.TimeRange)
+			e.GET("mem/big/top", memstat.BigTop)
+			e.GET("mem/big/count", memstat.BigCount)
+			e.GET("mem/leak/latest", memstat.LeakLatest)
+			e.GET("mem/leak/count", memstat.LeakCount)
+			e.GET("mem/leak/page", memstat.LeakPage)
+		})
 	})
 }

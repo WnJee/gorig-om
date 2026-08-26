@@ -16,18 +16,16 @@ import (
 
 	"github.com/google/pprof/profile"
 	"github.com/jom-io/gorig/cache"
+	"github.com/jom-io/gorig/global/variable"
+	configure "github.com/jom-io/gorig/utils/cofigure"
 	"github.com/jom-io/gorig/utils/errors"
 	"github.com/jom-io/gorig/utils/logger"
 	"go.uber.org/zap"
 )
 
 const (
-	bigSampleInterval    = 5 * time.Minute
 	leakCheckInterval    = 10 * time.Second
 	leakGCWindow         = 5
-	leakAllocDelta       = 100 * 1024 * 1024
-	leakObjectDelta      = 100000
-	leakCooldown         = 2 * time.Minute
 	leakMinSampleGap     = time.Minute
 	bigSampleTopLimit    = 50
 	bigMinInuseSpace     = int64(1 << 20)
@@ -36,6 +34,13 @@ const (
 	leakProfileKeepCount = 100
 	leakProfileMaxAge    = 7 * 24 * time.Hour
 	leakEventKeepCount   = 10000
+)
+
+var (
+	bigSampleInterval        = 5 * time.Minute
+	leakAllocDelta    uint64 = 100 * 1024 * 1024
+	leakObjectDelta   uint64 = 100000
+	leakCooldown             = 2 * time.Minute
 )
 
 var memServ *Serv
@@ -74,10 +79,45 @@ func S() *Serv {
 	return memServ
 }
 
-func init() {
+func Init() {
+	loadMemConfig()
+	if variable.OMKey == "" {
+		return
+	}
 	go S().baselineLoop()
 	go S().leakLoop()
 	startLeakTest()
+}
+
+func loadMemConfig() {
+	if v := strings.TrimSpace(configure.GetString("om.stat.mem.big_sample_interval", "")); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			bigSampleInterval = d
+		} else {
+			logger.Error(context.Background(), "Invalid om.stat.mem.big_sample_interval", zap.String("value", v))
+		}
+	}
+	if v := strings.TrimSpace(configure.GetString("om.stat.mem.leak_alloc_delta_mb", "")); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			leakAllocDelta = uint64(n) * 1024 * 1024
+		} else {
+			logger.Error(context.Background(), "Invalid om.stat.mem.leak_alloc_delta_mb", zap.String("value", v))
+		}
+	}
+	if v := strings.TrimSpace(configure.GetString("om.stat.mem.leak_object_delta", "")); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			leakObjectDelta = uint64(n)
+		} else {
+			logger.Error(context.Background(), "Invalid om.stat.mem.leak_object_delta", zap.String("value", v))
+		}
+	}
+	if v := strings.TrimSpace(configure.GetString("om.stat.mem.leak_cooldown", "")); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			leakCooldown = d
+		} else {
+			logger.Error(context.Background(), "Invalid om.stat.mem.leak_cooldown", zap.String("value", v))
+		}
+	}
 }
 
 func (s *Serv) baselineLoop() {

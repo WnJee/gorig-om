@@ -9,12 +9,9 @@ import (
 
 func TimeRange(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	start, err := apix.GetParamInt64(ctx, "start", apix.Force)
-	end, err := apix.GetParamInt64(ctx, "end", apix.Force)
-	unit, err := apix.GetParamStr(ctx, "unit", "minute")
-	if err != nil {
-		return
-	}
+	start, _ := apix.GetParamInt64(ctx, "start", apix.Force)
+	end, _ := apix.GetParamInt64(ctx, "end", apix.Force)
+	unit, _ := apix.GetParamStr(ctx, "unit", "minute")
 	data, e := S().TimeRange(ctx, start, end, cache.Granularity(unit))
 	apix.HandleData(ctx, consts.CurdSelectFailCode, data, e)
 }

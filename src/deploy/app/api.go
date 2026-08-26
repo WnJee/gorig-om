@@ -14,13 +14,10 @@ func Restart(ctx *gin.Context) {
 
 func ReStared(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	startID, e := apix.GetParamForce(ctx, "startID")
-	itemID, e := apix.GetParamStr(ctx, "itemID")
-	src, e := apix.GetParamStr(ctx, "src")
-	pid, e := apix.GetParamStr(ctx, "pid")
-	if e != nil {
-		return
-	}
+	startID, _ := apix.GetParamForce(ctx, "startID")
+	itemID, _ := apix.GetParamStr(ctx, "itemID")
+	src, _ := apix.GetParamStr(ctx, "src")
+	pid, _ := apix.GetParamStr(ctx, "pid")
 	App.RestartSuccess(ctx, startID, itemID, pid, StartSrc(src))
 	apix.HandleData(ctx, consts.CurdUpdateFailCode, nil, nil)
 }
@@ -33,10 +30,7 @@ func Stop(ctx *gin.Context) {
 
 func RestartLogs(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	pageReq, e := apix.GetPageReq(ctx)
-	if e != nil {
-		return
-	}
+	pageReq, _ := apix.GetPageReq(ctx)
 	status, err := ReStartPage(ctx, pageReq.Page, pageReq.Size)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, status, err)
 }

@@ -20,10 +20,7 @@ func Install(ctx *gin.Context) {
 
 func Branches(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	repoUrl, e := apix.GetParamType[string](ctx, "repoUrl", apix.Force)
-	if e != nil {
-		return
-	}
+	repoUrl, _ := apix.GetParamType[string](ctx, "repoUrl", apix.Force)
 	result, err := Env.Branches(ctx, repoUrl)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, &result, err)
 }

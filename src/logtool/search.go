@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -144,7 +145,55 @@ func ListLogFiles(opts SearchOptions) (map[string]string, error) {
 	return result, nil
 }
 
+type logBoundsEntry struct {
+	first string
+	last  string
+	ok    bool
+	size  int64
+	mtime int64
+}
+
+const boundsCacheLimit = 4096
+
+var (
+	boundsMu    sync.Mutex
+	boundsCache = make(map[string]logBoundsEntry)
+)
+
 func readLogTimeBounds(path string) (string, string, bool) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return "", "", false
+	}
+	size := fi.Size()
+	mtime := fi.ModTime().UnixNano()
+
+	boundsMu.Lock()
+	cached, hit := boundsCache[path]
+	boundsMu.Unlock()
+	if hit && cached.size == size && cached.mtime == mtime {
+		return cached.first, cached.last, cached.ok
+	}
+
+	firstTime, lastTime, ok := probeLogTimeBounds(path)
+
+	boundsMu.Lock()
+	if len(boundsCache) >= boundsCacheLimit {
+		boundsCache = make(map[string]logBoundsEntry)
+	}
+	boundsCache[path] = logBoundsEntry{
+		first: firstTime,
+		last:  lastTime,
+		ok:    ok,
+		size:  size,
+		mtime: mtime,
+	}
+	boundsMu.Unlock()
+
+	return firstTime, lastTime, ok
+}
+
+func probeLogTimeBounds(path string) (string, string, bool) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", "", false
@@ -856,13 +905,25 @@ func DownloadLogs(ctx *gin.Context, path string) *errors.Error {
 		return errors.Verify("invalid log file")
 	}
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	logRoot, err := filepath.Abs(getLogDir(""))
+	if err != nil {
+		return errors.Verify(fmt.Sprintf("resolve log root error: %v", err))
+	}
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return errors.Verify(fmt.Sprintf("invalid log path: %v", err))
+	}
+	if absPath != logRoot && !strings.HasPrefix(absPath, logRoot+string(os.PathSeparator)) {
+		return errors.Verify("log file outside of log directory")
+	}
+
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
 		return errors.Verify("log file does not exist")
 	}
 
 	ctx.Header("Content-Type", "application/octet-stream")
-	ctx.Header("Content-Disposition", "attachment; filename="+filepath.Base(path))
+	ctx.Header("Content-Disposition", "attachment; filename="+filepath.Base(absPath))
 
-	ctx.File(path)
+	ctx.File(absPath)
 	return nil
 }

@@ -30,12 +30,9 @@ func Search(ctx *gin.Context) {
 
 func Near(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	path, e := apix.GetParamType[string](ctx, "path", apix.Force)
-	cenLine, e := apix.GetParamType[int64](ctx, "line", apix.Force)
-	ctxRange, e := apix.GetParamType[int64](ctx, "range", apix.Force)
-	if e != nil {
-		return
-	}
+	path, _ := apix.GetParamType[string](ctx, "path", apix.Force)
+	cenLine, _ := apix.GetParamType[int64](ctx, "line", apix.Force)
+	ctxRange, _ := apix.GetParamType[int64](ctx, "range", apix.Force)
 	result, err := FetchContextLines(path, cenLine, ctxRange)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, &result, err)
 }
@@ -53,10 +50,7 @@ func Monitor(ctx *gin.Context) {
 
 func Download(ctx *gin.Context) {
 	defer apix.HandlePanic(ctx)
-	path, e := apix.GetParamType[string](ctx, "path", apix.Force)
-	if e != nil {
-		return
-	}
+	path, _ := apix.GetParamType[string](ctx, "path", apix.Force)
 	err := DownloadLogs(ctx, path)
 	apix.HandleData(ctx, consts.CurdSelectFailCode, nil, err)
 }
