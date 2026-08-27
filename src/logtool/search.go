@@ -17,6 +17,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +26,12 @@ import (
 
 const maxLineSize = 1024 * 1024 // 1MB max per JSON line
 const defLogDir = ".logs"
+
+const (
+	defaultSearchSize = 10
+	maxSearchSize     = 50000
+	maxParallelFiles  = 8
+)
 
 func getLogDir(rootDir string) string {
 	if rootDir == "" {
@@ -74,25 +82,27 @@ func ListLogFiles(opts SearchOptions) (map[string]string, error) {
 	logDir := getLogDir(opts.RootDir)
 	result := make(map[string]string)
 
-	localCategories, e := FetchCategories(opts.RootDir)
-	if e != nil {
-		return nil, fmt.Errorf("fetch categories error: %v", e)
-	}
-	categories := opts.Categories
-	if len(categories) == 0 {
-		categories = localCategories
-	}
-
 	catDirList, err := os.ReadDir(logDir)
 	if err != nil {
 		return nil, fmt.Errorf("read log dir error: %v", err)
 	}
-
-	newCategories := make([]string, 0)
-	for _, catDir := range catDirList {
-		for _, cat := range categories {
-			if catDir.Name() == cat {
-				newCategories = append(newCategories, cat)
+	dirSet := make(map[string]struct{}, len(catDirList))
+	for _, d := range catDirList {
+		if d.IsDir() {
+			dirSet[d.Name()] = struct{}{}
+		}
+	}
+	var categories []string
+	if len(opts.Categories) == 0 {
+		for _, d := range catDirList {
+			if d.IsDir() {
+				categories = append(categories, d.Name())
+			}
+		}
+	} else {
+		for _, cat := range opts.Categories {
+			if _, ok := dirSet[cat]; ok {
+				categories = append(categories, cat)
 			}
 		}
 	}
@@ -110,36 +120,37 @@ func ListLogFiles(opts SearchOptions) (map[string]string, error) {
 		}
 	}
 
-	for _, cat := range newCategories {
+	for _, cat := range categories {
 		catDir := filepath.Join(logDir, cat)
-		_ = filepath.Walk(catDir, func(path string, info fs.FileInfo, err error) error {
+		_ = filepath.WalkDir(catDir, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				logger.Warn(nil, "skip file", zap.Error(err))
 				return nil
 			}
-			if !info.IsDir() && strings.HasSuffix(info.Name(), ".jsonl") {
-				if strings.HasPrefix(info.Name(), cat) {
-					if startBound != "" || endBound != "" {
-						firstTime, lastTime, ok := readLogTimeBounds(path)
-						if ok {
-							if endBound != "" && firstTime > endBound {
-								return nil
-							}
-							if startBound != "" && lastTime < startBound {
-								return nil
-							}
-						}
+			if d.IsDir() {
+				return nil
+			}
+			name := d.Name()
+			if !strings.HasSuffix(name, ".jsonl") {
+				return nil
+			}
+			if !strings.HasPrefix(name, cat) {
+				return nil
+			}
+			if startBound != "" || endBound != "" {
+				firstTime, lastTime, ok := readLogTimeBounds(path)
+				if ok {
+					if endBound != "" && firstTime > endBound {
+						return nil
 					}
-					result[path] = info.Name()
+					if startBound != "" && lastTime < startBound {
+						return nil
+					}
 				}
 			}
+			result[path] = name
 			return nil
 		})
-		//if err != nil {
-		//	logger.Warn(nil, "walk log dir error", zap.Error(err))
-		//	//fmt.Printf("warn: %v\n", err)
-		//	return nil, nil
-		//}
 	}
 
 	return result, nil
@@ -258,7 +269,10 @@ func readFirstRecordTimeString(f *os.File) (string, bool) {
 
 func SearchLogs(opts SearchOptions) ([]MatchedRecord, *errors.Error) {
 	if opts.Size <= 0 {
-		opts.Size = 10
+		opts.Size = defaultSearchSize
+	}
+	if opts.Size > maxSearchSize {
+		opts.Size = maxSearchSize
 	}
 
 	traceID := strings.TrimSpace(opts.TraceID)
@@ -320,92 +334,274 @@ func searchLogsOnce(opts SearchOptions) ([]MatchedRecord, *errors.Error) {
 	if err != nil {
 		return nil, errors.Verify(err.Error())
 	}
-
-	fileList := make([]string, 0)
-	for _, v := range files {
-		fileList = append(fileList, v)
+	if len(files) == 0 {
+		return nil, nil
 	}
-	//logger.Info(nil, "log files", zap.Any("files", fileList))
 
-	var matchedRecords []MatchedRecord
-	var matchedCount int
-	lastRecordFound := false
-	startProcessing := opts.LastPath == ""
+	keys := make([]string, 0, len(files))
+	for k := range files {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 
-	for filePath := range files {
-		if !startProcessing && filePath == opts.LastPath {
-			startProcessing = true
-		}
-		if !startProcessing {
-			continue
-		}
-
-		f, err := os.Open(filePath)
-		if err != nil {
-			return nil, errors.Verify(fmt.Sprintf("open file error: %v", err))
-		}
-		defer f.Close()
-
-		reader := bufio.NewReader(f)
-		var lineNumber int64 = 0
-
-		for {
-			line, err := reader.ReadString('\n')
-			lineNumber++
-
-			if filePath == opts.LastPath && lineNumber <= opts.LastLine {
-				if err == io.EOF {
-					break
-				}
-				continue
-			}
-
-			if len(line) > maxLineSize && !endsWithNewline(line) {
-				skipRestOfLine(reader)
-			}
-
-			if strings.TrimSpace(line) == "" {
-				if err == io.EOF {
-					break
-				}
-				continue
-			}
-
-			if !preFilter(line, opts) {
-				continue
-			}
-
-			//var recMap map[string]interface{}
-			//if err := json.Unmarshal([]byte(line), &recMap); err != nil {
-			//	continue
-			//}
-			//rec := map2LogRecord(recMap)
-			rec := parseLineToLogRecord(line)
-
-			if postFilter(*rec, opts) {
-				matchedRecords = append(matchedRecords, MatchedRecord{
-					FilePath:   filePath,
-					LineNumber: lineNumber,
-					Record:     rec,
-				})
-				matchedCount++
-				if matchedCount >= opts.Size {
-					lastRecordFound = true
-					break
-				}
-			}
-
-			if err == io.EOF {
+	startIdx := 0
+	if opts.LastPath != "" {
+		found := false
+		for i, k := range keys {
+			if k == opts.LastPath {
+				startIdx = i
+				found = true
 				break
 			}
 		}
+		if !found {
+			return []MatchedRecord{}, nil
+		}
+	}
+	keys = keys[startIdx:]
 
-		if lastRecordFound {
+	levelNeedle := ""
+	if opts.Level != "" {
+		levelNeedle = `"level":"` + opts.Level + `"`
+	}
+	levelNeedles := make([]string, 0, len(opts.Levels))
+	for _, l := range opts.Levels {
+		if l != "" {
+			levelNeedles = append(levelNeedles, `"level":"`+l+`"`)
+		}
+	}
+	traceNeedle := ""
+	if opts.TraceID != "" {
+		traceNeedle = `"_trace_id_":"` + opts.TraceID + `"`
+	}
+	keyword := opts.Keyword
+	startBound := opts.StartBound
+	endBound := opts.EndBound
+
+	if len(keys) <= 1 || opts.Size <= 100 {
+		return sequentialScan(keys, opts, levelNeedle, levelNeedles, traceNeedle, keyword, startBound, endBound)
+	}
+	return parallelScan(keys, opts, levelNeedle, levelNeedles, traceNeedle, keyword, startBound, endBound)
+}
+
+func sequentialScan(keys []string, opts SearchOptions, levelNeedle string, levelNeedles []string, traceNeedle, keyword, startBound, endBound string) ([]MatchedRecord, *errors.Error) {
+	var matchedRecords []MatchedRecord
+	matchedRecords = make([]MatchedRecord, 0, opts.Size)
+	for idx, filePath := range keys {
+		skipLines := int64(0)
+		if idx == 0 && filePath == opts.LastPath {
+			skipLines = opts.LastLine
+		}
+		part, e := scanSingleFile(filePath, opts, levelNeedle, levelNeedles, traceNeedle, keyword, startBound, endBound, skipLines, opts.Size-len(matchedRecords))
+		if e != nil {
+			return nil, e
+		}
+		if len(part) > 0 {
+			matchedRecords = append(matchedRecords, part...)
+			if len(matchedRecords) >= opts.Size {
+				matchedRecords = matchedRecords[:opts.Size]
+				break
+			}
+		}
+	}
+	return matchedRecords, nil
+}
+
+func parallelScan(keys []string, opts SearchOptions, levelNeedle string, levelNeedles []string, traceNeedle, keyword, startBound, endBound string) ([]MatchedRecord, *errors.Error) {
+	type fileResult struct {
+		records []MatchedRecord
+		err     *errors.Error
+	}
+	concurrency := runtime.GOMAXPROCS(0)
+	if concurrency < 2 {
+		concurrency = 2
+	}
+	if concurrency > maxParallelFiles {
+		concurrency = maxParallelFiles
+	}
+	if concurrency > len(keys) {
+		concurrency = len(keys)
+	}
+	merged := make([]MatchedRecord, 0, opts.Size)
+	for batchStart := 0; batchStart < len(keys) && len(merged) < opts.Size; batchStart += concurrency {
+		batchEnd := batchStart + concurrency
+		if batchEnd > len(keys) {
+			batchEnd = len(keys)
+		}
+
+		results := make([]fileResult, batchEnd-batchStart)
+		var wg sync.WaitGroup
+		for idx := batchStart; idx < batchEnd; idx++ {
+			resultIdx := idx - batchStart
+			filePath := keys[idx]
+			skipLines := int64(0)
+			if batchStart == 0 && filePath == opts.LastPath {
+				skipLines = opts.LastLine
+			}
+			wg.Add(1)
+			go func(resultIdx int, path string, skipLines int64) {
+				defer wg.Done()
+				part, e := scanSingleFile(path, opts, levelNeedle, levelNeedles, traceNeedle, keyword, startBound, endBound, skipLines, opts.Size)
+				results[resultIdx] = fileResult{records: part, err: e}
+			}(resultIdx, filePath, skipLines)
+		}
+		wg.Wait()
+
+		for _, r := range results {
+			need := opts.Size - len(merged)
+			if need <= 0 {
+				return merged, nil
+			}
+			if r.err != nil {
+				return nil, r.err
+			}
+			if len(r.records) >= need {
+				merged = append(merged, r.records[:need]...)
+				return merged, nil
+			}
+			merged = append(merged, r.records...)
+		}
+	}
+	return merged, nil
+}
+
+func scanSingleFile(filePath string, opts SearchOptions, levelNeedle string, levelNeedles []string, traceNeedle, keyword, startBound, endBound string, skipLines int64, limit int) ([]MatchedRecord, *errors.Error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, errors.Verify(fmt.Sprintf("open file error: %v", err))
+	}
+	defer f.Close()
+
+	reader := bufio.NewReaderSize(f, 64*1024)
+	var lineNumber int64
+	var out []MatchedRecord
+	if limit > 0 {
+		out = make([]MatchedRecord, 0, limit)
+	}
+	for {
+		line, rerr := reader.ReadString('\n')
+		if len(line) == 0 && rerr != nil {
+			break
+		}
+		lineNumber++
+
+		if skipLines > 0 && lineNumber <= skipLines {
+			if rerr == io.EOF {
+				break
+			}
+			continue
+		}
+
+		if len(line) > maxLineSize && !endsWithNewline(line) {
+			skipRestOfLine(reader)
+		}
+
+		if len(strings.TrimSpace(line)) == 0 {
+			if rerr == io.EOF {
+				break
+			}
+			continue
+		}
+
+		if levelNeedle != "" && !strings.Contains(line, levelNeedle) {
+			if rerr == io.EOF {
+				break
+			}
+			continue
+		}
+		if len(levelNeedles) > 0 {
+			matched := false
+			for _, nd := range levelNeedles {
+				if strings.Contains(line, nd) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				if rerr == io.EOF {
+					break
+				}
+				continue
+			}
+		}
+		if traceNeedle != "" && !strings.Contains(line, traceNeedle) {
+			if rerr == io.EOF {
+				break
+			}
+			continue
+		}
+		if keyword != "" && !strings.Contains(line, keyword) {
+			if rerr == io.EOF {
+				break
+			}
+			continue
+		}
+
+		rec := parseLineToLogRecord(line)
+		if rec == nil {
+			if rerr == io.EOF {
+				break
+			}
+			continue
+		}
+		if !postFilterFast(rec, opts, startBound, endBound, keyword) {
+			if rerr == io.EOF {
+				break
+			}
+			continue
+		}
+		out = append(out, MatchedRecord{
+			FilePath:   filePath,
+			LineNumber: lineNumber,
+			Record:     rec,
+		})
+		if limit > 0 && len(out) >= limit {
+			break
+		}
+		if rerr == io.EOF {
 			break
 		}
 	}
+	return out, nil
+}
 
-	return matchedRecords, nil
+func postFilterFast(r *LogRecord, opts SearchOptions, startBound, endBound, keyword string) bool {
+	if opts.TraceID != "" && r.TraceID != opts.TraceID {
+		return false
+	}
+	if opts.TimeBoundsInvalid {
+		return false
+	}
+	if startBound != "" || endBound != "" {
+		rt := normalizeRecordTimeString(r.Time)
+		if rt == "" {
+			return false
+		}
+		if startBound != "" && rt < startBound {
+			return false
+		}
+		if endBound != "" && rt > endBound {
+			return false
+		}
+	}
+	if keyword != "" {
+		if strings.Contains(r.Msg, keyword) {
+			return true
+		}
+		if strings.Contains(r.Error, keyword) {
+			return true
+		}
+		if r.Data != nil {
+			for _, v := range r.Data {
+				if strings.Contains(v, keyword) {
+					return true
+				}
+			}
+			return false
+		}
+		return false
+	}
+	return true
 }
 
 func preFilter(line string, opts SearchOptions) bool {
@@ -786,28 +982,31 @@ func map2LogRecord(dataMap map[string]interface{}) *LogRecord {
 
 func parseLineToLogRecord(line string) *LogRecord {
 	rec := &LogRecord{
-		Level:   gjson.Get(line, "level").String(),
-		Time:    gjson.Get(line, "time").String(),
-		TraceID: gjson.Get(line, "_trace_id_").String(),
-		Msg:     gjson.Get(line, "msg").String(),
-		Error:   gjson.Get(line, "error").String(),
-		Data:    map[string]string{},
+		Data: map[string]string{},
 	}
-
 	gjson.Parse(line).ForEach(func(key, value gjson.Result) bool {
 		k := key.String()
-		if k == "level" || k == "time" || k == "_trace_id_" || k == "msg" || k == "error" {
-			return true
-		}
-		v := value.String()
-		if v == "" {
-			rec.Data[k] = value.Raw
-		} else {
-			rec.Data[k] = v
+		switch k {
+		case "level":
+			rec.Level = value.String()
+		case "time":
+			rec.Time = value.String()
+		case "_trace_id_":
+			rec.TraceID = value.String()
+		case "msg":
+			rec.Msg = value.String()
+		case "error":
+			rec.Error = value.String()
+		default:
+			v := value.String()
+			if v == "" {
+				rec.Data[k] = value.Raw
+			} else {
+				rec.Data[k] = v
+			}
 		}
 		return true
 	})
-
 	return rec
 }
 
