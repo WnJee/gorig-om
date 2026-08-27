@@ -257,7 +257,7 @@ func main() {
 
 ### 6.9 stat/gorstat — 协程趋势
 
-30s 采样 `runtime.NumGoroutine()`；查询为 GroupByTime AggAvg 四舍五入。清理配置 `om.stat.goroutine.max_period`。
+30s 采样 `runtime.NumGoroutine()`（只读运行时计数器，不 STW，开销可忽略）；查询为 GroupByTime AggAvg 四舍五入。清理配置 `om.stat.goroutine.max_period`；总开关 `om.stat.runtime.enabled`（与 memstat 共用，默认 true）。
 
 ### 6.10 stat/memstat — 内存诊断
 
@@ -265,12 +265,13 @@ func main() {
 
 | 配置键 | 默认 | 说明 |
 |---|---|---|
+| `om.stat.runtime.enabled` | true | 运行时监控总开关：同时控制大对象采样、泄漏检测与协程数采集（gorstat），关闭需重启生效 |
 | `om.stat.mem.big_sample_interval` | 5m | heap profile 大对象采样间隔 |
 | `om.stat.mem.leak_alloc_delta_mb` | 100 | 触发泄漏捕获的 HeapAlloc 窗口增量下限（MB） |
 | `om.stat.mem.leak_object_delta` | 100000 | 触发泄漏捕获的 HeapObjects 窗口增量下限 |
 | `om.stat.mem.leak_cooldown` | 2m | 两次泄漏捕获的最小冷却时间 |
 
-高吞吐服务误报时可调大上述阈值。
+高吞吐服务误报时可调大阈值；对延迟敏感的服务可用总开关一并关闭——**大对象采样与泄漏检测均有周期性 STW 开销**：大对象采样每次 `pprof.WriteHeapProfile` 快照堆会短暂 STW 并序列化全量样本（大堆服务上单次可达几十~几百 ms），泄漏检测每 10s 的 `runtime.ReadMemStats` 同样会短暂 STW。
 
 - **大对象**：按采样间隔 `pprof.WriteHeapProfile` 到 `.cache/heap/heap_base_*.pprof`，解析 inuse_space/inuse_objects 按函数位置聚合，Top50 且 ≥1MB 入 `mem_big_stat`；base profile 只留 1 份。
 - **泄漏检测**：每 10s 读 MemStats，GC 次数前进才采样；滑动窗口 5 次 GC 样本（最小间隔 1min），HeapAlloc 或 HeapObjects 增量达到阈值 → 触发泄漏捕获：写 `heap_leak_*.pprof`，与 base profile diff 出增长 Top10 函数，连同 profile 总量差值存 `mem_leak_event`（leak profile 留 100 份/7 天，事件留 1 万条）。API 层返回时会抹掉 profile 路径字段。
@@ -381,6 +382,8 @@ om:
   stat:
     err:
       max_period: 720h
+    runtime:
+      enabled: true               # 运行时监控总开关：协程数 + 大对象 + 泄漏检测
     goroutine:
       max_period: 720h
     mem:

@@ -84,6 +84,9 @@ func Init() {
 	if variable.OMKey == "" {
 		return
 	}
+	if !configure.GetBool("om.stat.runtime.enabled", true) {
+		return
+	}
 	go S().baselineLoop()
 	go S().leakLoop()
 	startLeakTest()

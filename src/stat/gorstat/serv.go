@@ -47,6 +47,10 @@ func Init() {
 		}
 	}
 
+	if !configure.GetBool("om.stat.runtime.enabled", true) {
+		return
+	}
+
 	cronx.AddCronTask("*/30 * * * * *", S().Collect, 10*time.Second)
 
 	go func() {
