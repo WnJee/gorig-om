@@ -43,7 +43,10 @@ var (
 	leakCooldown             = 2 * time.Minute
 )
 
-var memServ *Serv
+var (
+	memOnce sync.Once
+	memServ *Serv
+)
 var leakTestHold [][]byte
 var leakTestSmallHold [][]byte
 var leakTestStringHold []string
@@ -69,13 +72,13 @@ type gcSample struct {
 }
 
 func S() *Serv {
-	if memServ == nil {
+	memOnce.Do(func() {
 		memServ = &Serv{
 			bigStorage:   cache.NewPager[BigObjStat](context.Background(), cache.Sqlite, "mem_big_stat"),
 			leakStorage:  cache.NewPager[LeakEvent](context.Background(), cache.Sqlite, "mem_leak_event"),
 			leakCooldown: leakCooldown,
 		}
-	}
+	})
 	return memServ
 }
 

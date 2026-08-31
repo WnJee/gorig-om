@@ -22,14 +22,17 @@ func Sign() gin.HandlerFunc {
 		get := tokenx.Get(tokenx.Jwt, tokenx.Memory)
 		if _, err := get.Generator.Parse(sign); err != nil {
 			response.ErrorForbidden(c)
-		} else {
-			if userID, exist := get.Manager.GetUserID(sign); !exist {
-				response.ErrorTokenAuthFail(c)
-				return
-			} else if !omuser.IsOM(userID) {
-				response.ErrorForbidden(c)
-			}
-			c.Next()
+			return
 		}
+		userID, exist := get.Manager.GetUserID(sign)
+		if !exist {
+			response.ErrorTokenAuthFail(c)
+			return
+		}
+		if !omuser.IsOM(userID) {
+			response.ErrorForbidden(c)
+			return
+		}
+		c.Next()
 	}
 }

@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	statOnce  sync.Once
 	statServ  *Serv
 	latMaxAge = 30 * 24 * time.Hour
 )
@@ -39,13 +40,13 @@ type Serv struct {
 }
 
 func S() *Serv {
-	if statServ == nil {
+	statOnce.Do(func() {
 		statServ = &Serv{
 			storage:     cache.NewPager[ApiLatencyStat](context.Background(), cache.Sqlite, "api_latency_stat"),
 			storageHour: cache.NewPager[ApiLatencyStat](context.Background(), cache.Sqlite, "api_latency_stat_hour"),
 			meta:        cache.NewPager[ApiLatencyMeta](context.Background(), cache.Sqlite, "api_latency_meta"),
 		}
-	}
+	})
 	return statServ
 }
 

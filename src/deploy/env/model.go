@@ -17,7 +17,7 @@ type GitRepo struct {
 }
 
 type GoEnv struct {
-	Key     string `json:"key" form:"gitInit" binding:"required"`
-	Value   string `json:"value" form:"gitInit" binding:"required"`
+	Key     string `json:"key" form:"key" binding:"required"`
+	Value   string `json:"value" form:"value" binding:"required"`
 	Default bool   `json:"default"`
 }

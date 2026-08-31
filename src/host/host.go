@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -192,7 +193,7 @@ func (s *Serv) GetHostResourceUsage(ctx context.Context, page, size int64) (*cac
 // ClearHostResourceUsage clears the host resource usage data older than MaxPeriod.
 func (s *Serv) ClearHostResourceUsage(ctx context.Context) error {
 	expirationTime := time.Now().Add(-maxPeriod).Unix()
-	if err := s.storage.Delete(map[string]any{"time": map[string]any{"$lt": expirationTime}}); err != nil {
+	if err := s.storage.Delete(map[string]any{"at": map[string]any{"$lt": expirationTime}}); err != nil {
 		logger.Error(ctx, "ClearHostResourceUsage failed", zap.Error(err))
 		return err
 	}
@@ -202,12 +203,19 @@ func (s *Serv) ClearHostResourceUsage(ctx context.Context) error {
 
 func (s *Serv) getDiskUsage(path string) uint64 {
 	var totalSize uint64 = 0
-	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(path, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
-			logger.Error(context.Background(), "Walk error", zap.String("path", path), zap.Error(err))
+			logger.Error(context.Background(), "Walk error", zap.String("path", p), zap.Error(err))
 			return nil
 		}
-		if !info.IsDir() {
+		if d.IsDir() {
+			name := d.Name()
+			if (strings.HasPrefix(name, ".") && p != path) || name == "node_modules" || name == "vendor" || name == "tmp" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if info, err := d.Info(); err == nil {
 			totalSize += uint64(info.Size())
 		}
 		return nil

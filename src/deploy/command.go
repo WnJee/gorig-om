@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cast"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -26,7 +27,7 @@ type RunOpts struct {
 	Env      []string
 	PrintLog bool
 	TimeOut  time.Duration
-	Nice     int // default nice value is 5, range is -20 to 19
+	Nice     int // default nice value is 0 (normal), range is -20 to 19
 }
 
 func DefOpts() *RunOpts {
@@ -60,7 +61,7 @@ func (opts *RunOpts) SetTimeOut(timeOut time.Duration) *RunOpts {
 
 func (opts *RunOpts) SetNice(nice int) *RunOpts {
 	if nice < -20 || nice > 19 {
-		opts.Nice = 5
+		opts.Nice = 0
 	} else {
 		opts.Nice = nice
 	}
@@ -78,14 +79,6 @@ func (opts *RunOpts) DirExists() bool {
 }
 
 func (opts *RunOpts) EnvExists() bool {
-	if opts.Env == nil {
-		return false
-	}
-	for _, env := range opts.Env {
-		if env == "" {
-			return false
-		}
-	}
 	return len(opts.Env) > 0
 }
 
@@ -131,12 +124,14 @@ func runCommand(ctx context.Context, cmd string, opts *RunOpts, args ...string) 
 	if opts.Nice < -20 || opts.Nice > 19 {
 		return "", localErrs.Sys("Nice value must be between -20 and 19")
 	}
-	if opts.Nice == 0 {
-		opts.Nice = 5
-	}
 
-	args = append([]string{"-n", fmt.Sprintf("%d", opts.Nice), cmd}, args...)
-	command := exec.CommandContext(ctx, "nice", args...)
+	var command *exec.Cmd
+	if opts.Nice != 0 && runtime.GOOS != "windows" {
+		execArgs := append([]string{"-n", fmt.Sprintf("%d", opts.Nice), cmd}, args...)
+		command = exec.CommandContext(ctx, "nice", execArgs...)
+	} else {
+		command = exec.CommandContext(ctx, cmd, args...)
+	}
 
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -156,13 +151,18 @@ func runCommand(ctx context.Context, cmd string, opts *RunOpts, args ...string) 
 		if !opts.PrintLogEnabled() {
 			logger.Info(ctx, fmt.Sprintf("Running command: %s %s", cmd, strings.Join(args, " ")))
 		}
-		errInfo := fmt.Sprintf("Command failed: %s\n%s", err.Error(), stderr.String())
-		logger.Error(ctx, errInfo)
-		if stderr.Len() > 0 {
-			return "", localErrs.Verify(errInfo)
-		} else {
-			return "", nil
+		errDetail := strings.TrimSpace(stderr.String())
+		if errDetail == "" {
+			errDetail = strings.TrimSpace(out.String())
 		}
+		var errInfo string
+		if errDetail != "" {
+			errInfo = fmt.Sprintf("Command failed: %s\n%s", err.Error(), errDetail)
+		} else {
+			errInfo = fmt.Sprintf("Command failed: %s", err.Error())
+		}
+		logger.Error(ctx, errInfo)
+		return "", localErrs.Verify(errInfo)
 	}
 
 	result := out.String()

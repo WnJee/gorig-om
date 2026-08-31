@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/jom-io/gorig/cache"
@@ -16,6 +17,7 @@ import (
 )
 
 var (
+	servOnce  sync.Once
 	serv      *Serv
 	maxPeriod = 30 * 24 * time.Hour
 )
@@ -25,11 +27,11 @@ type Serv struct {
 }
 
 func S() *Serv {
-	if serv == nil {
+	servOnce.Do(func() {
 		serv = &Serv{
 			storage: cache.NewPager[GoroutineStat](context.Background(), cache.Sqlite, "goroutine_stat"),
 		}
-	}
+	})
 	return serv
 }
 

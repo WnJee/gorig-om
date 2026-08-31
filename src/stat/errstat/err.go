@@ -14,10 +14,14 @@ import (
 	"go.uber.org/zap"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
-var serv *Serv
+var (
+	servOnce sync.Once
+	serv     *Serv
+)
 
 type Serv struct {
 	storage    cache.Pager[ErrStat]
@@ -30,13 +34,13 @@ var (
 )
 
 func S() *Serv {
-	if serv == nil {
+	servOnce.Do(func() {
 		serv = &Serv{
 			storage:    cache.NewPager[ErrStat](context.Background(), cache.Sqlite),
 			sigStorage: cache.NewPager[ErrSigStat](context.Background(), cache.Sqlite, "err_sig_stat"),
 			sigMeta:    cache.NewPager[ErrSigMeta](context.Background(), cache.Sqlite, "err_sig_meta"),
 		}
-	}
+	})
 	return serv
 }
 

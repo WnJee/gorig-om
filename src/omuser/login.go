@@ -50,7 +50,9 @@ func LoginByPwd(ctx *gin.Context, hashPwd string) (sign *string, err *errors.Err
 
 	now := time.Now().Unix() / 10
 	localPwd := fmt.Sprintf("%d%s", now, variable.OMKey)
-	if e := bcrypt.CompareHashAndPassword([]byte(hashPwd), []byte(localPwd)); e != nil {
+	prevPwd := fmt.Sprintf("%d%s", now-1, variable.OMKey)
+	if bcrypt.CompareHashAndPassword([]byte(hashPwd), []byte(localPwd)) != nil &&
+		bcrypt.CompareHashAndPassword([]byte(hashPwd), []byte(prevPwd)) != nil {
 		loginErrCount.Count++
 		if loginErrCount.Count >= 5 {
 			loginErrCount.LockTime = time.Now().Unix() + 60*10 // lock for 10 minutes

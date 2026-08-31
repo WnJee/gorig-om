@@ -893,8 +893,12 @@ func MonitorLogs(ctx *gin.Context, opts SearchOptions) *errors.Error {
 		return errors.Verify(fmt.Sprintf("unable to list log files: %v", err))
 	}
 
-	// Add files to the watcher
-	for file, _ := range files {
+	// Initialize file offsets and add files to the watcher
+	fileOffsets := make(map[string]int64)
+	for file := range files {
+		if fi, err := os.Stat(file); err == nil {
+			fileOffsets[file] = fi.Size()
+		}
 		err = watcher.Add(file)
 		if err != nil {
 			return errors.Verify(fmt.Sprintf("unable to add file to watcher: %v", err))
@@ -912,14 +916,13 @@ func MonitorLogs(ctx *gin.Context, opts SearchOptions) *errors.Error {
 		select {
 		case event := <-watcher.Events:
 			if event.Op&fsnotify.Write == fsnotify.Write {
-				result, errP := processFile(event.Name, opts)
-				if errP != nil {
-					return errP
-				}
-				if result != nil {
-					//fmt.Println("Matching log:", *result)
-					ctx.SSEvent("message", result)
-					ctx.Writer.Flush()
+				records, newOffset, errP := processFileIncremental(event.Name, fileOffsets[event.Name], opts)
+				if errP == nil {
+					fileOffsets[event.Name] = newOffset
+					for _, result := range records {
+						ctx.SSEvent("message", result)
+						ctx.Writer.Flush()
+					}
 				}
 			}
 		case err := <-watcher.Errors:
@@ -932,23 +935,62 @@ func MonitorLogs(ctx *gin.Context, opts SearchOptions) *errors.Error {
 	}
 }
 
-// processFile processes a log file and prints the last matching record
-func processFile(filePath string, opts SearchOptions) (*MatchedRecord, *errors.Error) {
+// processFileIncremental processes newly appended lines in a log file from lastOffset
+func processFileIncremental(filePath string, lastOffset int64, opts SearchOptions) ([]MatchedRecord, int64, *errors.Error) {
 	f, err := os.Open(filePath)
 	if err != nil {
-		return nil, errors.Verify(fmt.Sprintf("unable to open log file: %v", err))
+		return nil, lastOffset, errors.Verify(fmt.Sprintf("unable to open log file: %v", err))
 	}
 	defer f.Close()
 
-	lastRec, errR := readLastRecord(f)
-	if errR != nil {
-		return nil, errors.Verify(fmt.Sprintf("unable to read last record: %v", errR))
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, lastOffset, errors.Verify(fmt.Sprintf("unable to stat log file: %v", err))
+	}
+	size := fi.Size()
+	if size < lastOffset {
+		// File was truncated or rotated
+		lastOffset = 0
+	}
+	if size == lastOffset {
+		return nil, lastOffset, nil
 	}
 
-	if lastRec != nil && matchRecord(*lastRec.Record, opts) {
-		return lastRec, nil
+	if _, err := f.Seek(lastOffset, io.SeekStart); err != nil {
+		return nil, lastOffset, errors.Verify(fmt.Sprintf("unable to seek file: %v", err))
 	}
-	return nil, nil
+
+	reader := bufio.NewReaderSize(f, 64*1024)
+	var records []MatchedRecord
+	offset := lastOffset
+	for {
+		line, rerr := reader.ReadString('\n')
+		if len(line) == 0 && rerr != nil {
+			break
+		}
+		offset += int64(len(line))
+		if len(line) > maxLineSize && !endsWithNewline(line) {
+			skipRestOfLine(reader)
+		}
+		if len(strings.TrimSpace(line)) == 0 {
+			if rerr == io.EOF {
+				break
+			}
+			continue
+		}
+		rec := parseLineToLogRecord(line)
+		if rec != nil && matchRecord(*rec, opts) {
+			records = append(records, MatchedRecord{
+				FilePath:   filePath,
+				LineNumber: -1,
+				Record:     rec,
+			})
+		}
+		if rerr == io.EOF {
+			break
+		}
+	}
+	return records, offset, nil
 }
 
 // map2LogRecord

@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/jom-io/gorig-om/src/deploy"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -144,11 +146,34 @@ func (c envService) Branches(ctx context.Context, repoURL string) ([]string, *er
 	return branchNames, nil
 }
 
+var validHostRegexp = regexp.MustCompile(`^[a-zA-Z0-9.-]+$`)
+
 func (c envService) trustHost(ctx context.Context, host string) error {
-	cmd := exec.CommandContext(ctx, "sh", "-c", fmt.Sprintf("ssh-keyscan %s >> ~/.ssh/known_hosts", host))
-	out, err := cmd.CombinedOutput()
+	host = strings.TrimSpace(host)
+	if host == "" || !validHostRegexp.MatchString(host) {
+		return fmt.Errorf("invalid host format: %s", host)
+	}
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("ssh-keyscan error: %v\noutput: %s", err, out)
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	sshDir := filepath.Join(homeDir, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		return fmt.Errorf("failed to create .ssh directory: %w", err)
+	}
+	knownHostsPath := filepath.Join(sshDir, "known_hosts")
+	f, err := os.OpenFile(knownHostsPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open known_hosts: %w", err)
+	}
+	defer f.Close()
+
+	cmd := exec.CommandContext(ctx, "ssh-keyscan", host)
+	cmd.Stdout = f
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ssh-keyscan error: %v, stderr: %s", err, stderr.String())
 	}
 	return nil
 }
@@ -409,7 +434,7 @@ func (c envService) GoEnvGet(ctx context.Context) []GoEnv {
 			logger.Error(ctx, fmt.Sprintf("Goenv init failed to set go env %v", e))
 			return nil
 		}
-		return nil
+		return env
 	}
 	logger.Info(ctx, fmt.Sprintf("Got go env %v", env))
 	return env

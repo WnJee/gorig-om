@@ -1,4 +1,4 @@
-package delpoy
+package task
 
 import (
 	"context"
@@ -73,7 +73,7 @@ func (t taskService) GetConfig(ctx context.Context) (*TaskOptions, *errors.Error
 	return &opts, nil
 }
 
-func (t taskService) Start(ctx context.Context, auto bool) *errors.Error {
+func (t taskService) Start(ctx context.Context, auto bool, gitHash ...string) *errors.Error {
 	logger.Info(ctx, "Starting task")
 	opts, err := t.GetConfig(ctx)
 	if err != nil {
@@ -86,11 +86,15 @@ func (t taskService) Start(ctx context.Context, auto bool) *errors.Error {
 		return errors.Verify("Repository URL or branch is empty")
 	}
 	opts.AutoTrigger = auto
+	hashVal := ""
+	if len(gitHash) > 0 {
+		hashVal = gitHash[0]
+	}
 	taskRecord := TaskRecord{
 		ID:          xid.New().String(),
 		TaskOptions: *opts,
 		Commit:      "",
-		GitHash:     "",
+		GitHash:     hashVal,
 		CreateAt:    time.Now(),
 		Status:      Waiting,
 		CreateBy:    "admin",
@@ -216,8 +220,19 @@ func autoCheck() {
 		return
 	}
 	hash := deployEnv.Env.GetLatestHash(ctx, opts.Repo, opts.Branch)
+	if hash == "" {
+		return
+	}
 
 	storage := cache.NewPager[TaskRecord](ctx, cache.Sqlite)
+	// If there is already a waiting or running task, skip
+	activeItems, activeErr := storage.Find(1, 1, map[string]any{
+		"status": map[string]any{"$in": []string{string(Waiting), string(Running)}},
+	})
+	if activeErr == nil && activeItems != nil && len(activeItems.Items) > 0 {
+		return
+	}
+
 	item, getErr := storage.Get(map[string]any{"gitHash": hash})
 	if getErr != nil {
 		logger.Error(ctx, fmt.Sprintf("Error getting task item: %v", getErr))
@@ -228,7 +243,7 @@ func autoCheck() {
 		return
 	}
 
-	if err = task.Start(ctx, true); err != nil {
+	if err = task.Start(ctx, true, hash); err != nil {
 		logger.Error(ctx, fmt.Sprintf("Error starting task: %v", err))
 	}
 }
@@ -520,14 +535,22 @@ func (t taskService) buildFile(ctx context.Context, codeDir string, item *TaskRe
 
 	item.Running(fmt.Sprintf("Running go build..."))
 	outputPath := filepath.Join(codeDir, outputName)
-	//go build -o ${apiBinName}  -ldflags "-w -s"  -trimpath  ./simple/main.go
+	buildTarget := "."
+	if mainGoFile != "" {
+		dir := filepath.Dir(mainGoFile)
+		if dir == "." || dir == "" {
+			buildTarget = "."
+		} else {
+			buildTarget = "./" + filepath.ToSlash(dir)
+		}
+	}
 	buildOpts := &deploy.RunOpts{
 		PrintLog: true,
 		TimeOut:  5 * time.Minute,
 		Dir:      codeDir,
 		Env:      cpuEnv,
 	}
-	if _, err := deploy.RunCommand(ctx, "go", buildOpts, "build", "-o", outputName, "-ldflags", "-w -s", "-trimpath", mainGoFile); err != nil {
+	if _, err := deploy.RunCommand(ctx, "go", buildOpts, "build", "-o", outputName, "-ldflags", "-w -s", "-trimpath", buildTarget); err != nil {
 		item.Running(fmt.Sprintf("Error building file: %v", err), Error)
 		return
 	} else {
@@ -556,9 +579,8 @@ func (t taskService) buildFile(ctx context.Context, codeDir string, item *TaskRe
 }
 
 func (t taskService) StartedListen() {
-	var rid uint64
 	ctx := logger.NewCtx()
-	rid, _ = messagex.RegisterTopic(deploy.TopicRunStarted, func(msg *messagex.Message) *errors.Error {
+	_, _ = messagex.RegisterTopic(deploy.TopicRunStarted, func(msg *messagex.Message) *errors.Error {
 		id := msg.GetValueStr("itemID")
 		pid := msg.GetValueStr("pid")
 		logger.Info(ctx, fmt.Sprintf("Task started: %s", id))
@@ -580,11 +602,6 @@ func (t taskService) StartedListen() {
 		item.Storage = cachePage
 		item.RBStatus = Ready
 		item.Running(fmt.Sprintf("Deploy task finished successfully"), Light)
-
-		go func() {
-			time.Sleep(100 * time.Millisecond)
-			_ = messagex.UnSubscribe(deploy.TopicRunStarted, rid)
-		}()
 		return nil
 	})
 }

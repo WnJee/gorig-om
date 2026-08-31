@@ -259,37 +259,39 @@ func (a appService) RestartSuccess(ctx context.Context, startID, itemID, pid str
 	}
 
 	startWatchdog := func() {
-		if _, rErr := deploy.RunCommand(ctx, "echo", nil, "Starting watchdog service..."); rErr != nil {
-			logger.Error(ctx, "Failed to start watchdog service")
+		bgCtx := context.Background()
+		if _, rErr := deploy.RunCommand(bgCtx, "echo", nil, "Starting watchdog service..."); rErr != nil {
+			logger.Error(bgCtx, "Failed to start watchdog service")
 			return
 		}
 
 		// Avoid duplicate watchdog processes when falling back
-		if running, _ := deploy.RunCommand(ctx, "pgrep", nil, "-f", watchdogFile()); len(strings.TrimSpace(running)) > 0 {
-			logger.Info(ctx, "Watchdog service already running.")
+		if running, _ := deploy.RunCommand(bgCtx, "pgrep", nil, "-f", watchdogFile()); len(strings.TrimSpace(running)) > 0 {
+			logger.Info(bgCtx, "Watchdog service already running.")
 			return
 		}
 
-		if _, rErr := deploy.RunCommand(ctx, "bash", nil, "-c", fmt.Sprintf("nohup ./%s > watchdog.out 2>&1 &", watchdogFile())); rErr != nil {
-			logger.Error(ctx, "Failed to start watchdog service")
+		if _, rErr := deploy.RunCommand(bgCtx, "bash", nil, "-c", fmt.Sprintf("nohup ./%s > watchdog.out 2>&1 &", watchdogFile())); rErr != nil {
+			logger.Error(bgCtx, "Failed to start watchdog service")
 			return
 		} else {
-			logger.Info(ctx, "Watchdog service started.")
+			logger.Info(bgCtx, "Watchdog service started.")
 		}
 	}
 
 	go func() {
+		bgCtx := context.Background()
 		reStartLog := &ReStartLog{}
 		reStartLogFile := "restart.log"
 		log := ""
 		time.Sleep(1 * time.Second) // Ensure the restart log file is created before reading
 		if _, errOs := os.Stat(reStartLogFile); os.IsNotExist(errOs) {
-			logger.Error(ctx, "Restart log file not found")
+			logger.Error(bgCtx, "Restart log file not found")
 			log = fmt.Sprintf("Restarted at %s with ID %s", time.Now().Format("2006-01-02 15:04:05"), startID)
 		} else {
 			logContent, errRead := os.ReadFile(reStartLogFile)
 			if errRead != nil {
-				logger.Error(ctx, "Failed to read restart log file")
+				logger.Error(bgCtx, "Failed to read restart log file")
 				return
 			}
 			log = string(logContent)
@@ -297,7 +299,7 @@ func (a appService) RestartSuccess(ctx context.Context, startID, itemID, pid str
 		if src == StartSrcCrash {
 			restartLogs, err := os.ReadDir("restart_logs")
 			if err != nil {
-				logger.Error(ctx, "Failed to read restart_logs directory")
+				logger.Error(bgCtx, "Failed to read restart_logs directory")
 				return
 			}
 			if len(restartLogs) > 0 {
@@ -310,10 +312,10 @@ func (a appService) RestartSuccess(ctx context.Context, startID, itemID, pid str
 						latestLog = logFile
 					}
 				}
-				logger.Info(ctx, fmt.Sprintf("Latest restart log file: %s", latestLog.Name()))
+				logger.Info(bgCtx, fmt.Sprintf("Latest restart log file: %s", latestLog.Name()))
 				crashLog, errLog := readLastNLines("restart_logs/"+latestLog.Name(), 300)
 				if errLog != nil {
-					logger.Error(ctx, "Failed to read last lines of latest restart log file")
+					logger.Error(bgCtx, "Failed to read last lines of latest restart log file")
 					return
 				}
 				log = fmt.Sprintf("%s\nCrash log:\n%s", log, crashLog)
@@ -321,16 +323,17 @@ func (a appService) RestartSuccess(ctx context.Context, startID, itemID, pid str
 				log = fmt.Sprintf("%s\nNo crash logs found.", log)
 			}
 		}
-		if errStart := reStartLog.Save(ctx, src, log); errStart != nil {
-			logger.Error(ctx, "Failed to save restart log")
+		if errStart := reStartLog.Save(bgCtx, src, log); errStart != nil {
+			logger.Error(bgCtx, "Failed to save restart log")
 			return
 		}
 	}()
 
 	if validStart {
 		go func() {
+			bgCtx := context.Background()
 			if err := cache.New[string](cache.JSON).Del(startIDKey); err != nil {
-				logger.Error(ctx, "Failed to delete local startID")
+				logger.Error(bgCtx, "Failed to delete local startID")
 				return
 			}
 		}()
@@ -340,7 +343,8 @@ func (a appService) RestartSuccess(ctx context.Context, startID, itemID, pid str
 
 			if itemID != "" {
 				go func() {
-					messagex.PublishNewMsg(ctx, deploy.TopicRunStarted, map[string]string{
+					bgCtx := context.Background()
+					messagex.PublishNewMsg(bgCtx, deploy.TopicRunStarted, map[string]string{
 						"itemID": itemID,
 						"pid":    pid,
 					})
@@ -349,9 +353,6 @@ func (a appService) RestartSuccess(ctx context.Context, startID, itemID, pid str
 		}()
 		return
 	}
-
-	// Fallback: start watchdog even when startID verification fails/missing (manual restart support)
-	go startWatchdog()
 
 	//	time.Sleep(3 * time.Second)
 	//	var runErr *errors.Error
@@ -411,8 +412,9 @@ echo "Service stopped successfully."`, watchdogFile(), runFile)
 	}
 
 	go func() {
-		if _, err := deploy.RunCommand(ctx, "./stop.sh", deploy.DefOpts()); err != nil {
-			logger.Error(ctx, fmt.Sprintf("Failed to execute stop.sh: %v", err))
+		bgCtx := context.Background()
+		if _, err := deploy.RunCommand(bgCtx, "./stop.sh", deploy.DefOpts()); err != nil {
+			logger.Error(bgCtx, fmt.Sprintf("Failed to execute stop.sh: %v", err))
 			return
 		}
 	}()
