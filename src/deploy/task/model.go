@@ -9,13 +9,16 @@ import (
 )
 
 type TaskOptions struct {
-	GitInit     bool         `json:"gitInit" form:"gitInit" binding:"required"`
-	GoInit      bool         `json:"goInit" form:"goInit" binding:"required"`
-	SshKeyCopy  bool         `json:"sshKeyCopy" form:"sshKeyCopy" binding:"required"`
-	Repo        string       `json:"repo" form:"repo" binding:"required"`
-	Branch      string       `json:"branch" form:"branch" binding:"required"`
-	OtherRepos  *[]OtherRepo `json:"otherRepos" form:"otherRepos"`
-	AutoTrigger bool         `json:"autoTrigger" form:"autoTrigger"`
+	GitInit            bool         `json:"gitInit" form:"gitInit" binding:"required"`
+	GoInit             bool         `json:"goInit" form:"goInit" binding:"required"`
+	SshKeyCopy         bool         `json:"sshKeyCopy" form:"sshKeyCopy" binding:"required"`
+	Repo               string       `json:"repo" form:"repo" binding:"required"`
+	Branch             string       `json:"branch" form:"branch" binding:"required"`
+	OtherRepos         *[]OtherRepo `json:"otherRepos" form:"otherRepos"`
+	AutoTrigger        bool         `json:"autoTrigger" form:"autoTrigger"`
+	HealthCheckURL     string       `json:"healthCheckUrl" form:"healthCheckUrl"`
+	HealthCheckTimeout int          `json:"healthCheckTimeout" form:"healthCheckTimeout"`
+	AutoRollback       bool         `json:"autoRollback" form:"autoRollback"`
 }
 
 type OtherRepo struct {

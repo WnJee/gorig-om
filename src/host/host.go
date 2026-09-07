@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"fmt"
+	"github.com/jom-io/gorig-om/src/alert"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/cronx"
 	"github.com/jom-io/gorig/global/variable"
@@ -178,6 +179,37 @@ func (s *Serv) Collect(ctx context.Context) {
 	if err = s.storage.Put(resUsage); err != nil {
 		logger.Error(ctx, "Collect failed to save resource usage", zap.Error(err))
 		return
+	}
+
+	alertCfg := alert.S().GetConfig()
+	if alertCfg.Enabled {
+		if hostCpuAvg >= alertCfg.CPUThreshold {
+			alert.S().Send(ctx, alert.AlertEvent{
+				Type:      alert.AlertHighCPU,
+				Level:     alert.LevelWarning,
+				Title:     "宿主机 CPU 使用率过高告警",
+				Message:   fmt.Sprintf("当前宿主机 CPU 使用率达到 %.2f%%，超过告警阈值 %.2f%%", hostCpuAvg, alertCfg.CPUThreshold),
+				Timestamp: time.Now(),
+				Details: map[string]any{
+					"hostCpu": fmt.Sprintf("%.2f%%", hostCpuAvg),
+					"appCpu":  fmt.Sprintf("%.2f%%", appCpuAvg),
+				},
+			})
+		}
+		if diskUsage.UsedPercent >= alertCfg.DiskThreshold {
+			alert.S().Send(ctx, alert.AlertEvent{
+				Type:      alert.AlertHighDisk,
+				Level:     alert.LevelWarning,
+				Title:     "宿主机磁盘空间告警",
+				Message:   fmt.Sprintf("根目录磁盘使用率已达 %.2f%%，超过告警阈值 %.2f%%", diskUsage.UsedPercent, alertCfg.DiskThreshold),
+				Timestamp: time.Now(),
+				Details: map[string]any{
+					"usedMB":    fmt.Sprintf("%.2f MB", float64(diskUsage.Used)/1024/1024),
+					"totalMB":   fmt.Sprintf("%.2f MB", float64(diskUsage.Total)/1024/1024),
+					"usedRatio": fmt.Sprintf("%.2f%%", diskUsage.UsedPercent),
+				},
+			})
+		}
 	}
 }
 

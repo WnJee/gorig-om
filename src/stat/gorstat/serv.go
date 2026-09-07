@@ -2,11 +2,13 @@ package gorstat
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"runtime"
 	"sync"
 	"time"
 
+	"github.com/jom-io/gorig-om/src/alert"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/cronx"
 	"github.com/jom-io/gorig/global/variable"
@@ -82,6 +84,21 @@ func (s *Serv) Collect(ctx context.Context) {
 	}
 	if err := s.storage.Put(stat); err != nil {
 		logger.Error(ctx, "Save goroutine stat failed", zap.Error(err))
+	}
+
+	alertCfg := alert.S().GetConfig()
+	if alertCfg.Enabled && stat.Count >= int64(alertCfg.GoroutineThreshold) {
+		alert.S().Send(ctx, alert.AlertEvent{
+			Type:      alert.AlertHighGoroutine,
+			Level:     alert.LevelWarning,
+			Title:     "Goroutine 数量激增告警",
+			Message:   fmt.Sprintf("当前 Goroutine 数量达到 %d，超过告警阈值 %d", stat.Count, alertCfg.GoroutineThreshold),
+			Timestamp: time.Now(),
+			Details: map[string]any{
+				"currentCount": stat.Count,
+				"threshold":    alertCfg.GoroutineThreshold,
+			},
+		})
 	}
 }
 

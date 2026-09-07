@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/jom-io/gorig-om/src/alert"
 	"github.com/jom-io/gorig-om/src/deploy"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/global/variable"
@@ -326,6 +327,19 @@ func (a appService) RestartSuccess(ctx context.Context, startID, itemID, pid str
 		if errStart := reStartLog.Save(bgCtx, src, log); errStart != nil {
 			logger.Error(bgCtx, "Failed to save restart log")
 			return
+		}
+		if src == StartSrcCrash || src == StartSrcOveruse {
+			alert.S().Send(bgCtx, alert.AlertEvent{
+				Type:      alert.AlertCrash,
+				Level:     alert.LevelCritical,
+				Title:     fmt.Sprintf("应用进程异常重启 (%s)", src.String()),
+				Message:   fmt.Sprintf("看门狗检测到服务中断并已执行自动重启。原因: %s", src.String()),
+				Timestamp: time.Now(),
+				Details: map[string]any{
+					"startID": startID,
+					"src":     src.String(),
+				},
+			})
 		}
 	}()
 

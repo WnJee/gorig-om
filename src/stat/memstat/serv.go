@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/google/pprof/profile"
+	"github.com/jom-io/gorig-om/src/alert"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/global/variable"
 	configure "github.com/jom-io/gorig/utils/cofigure"
@@ -483,9 +484,37 @@ func (s *Serv) captureLeak(ctx context.Context, ms runtime.MemStats, allocDelta,
 		logger.Error(ctx, "save leak event failed", zap.Error(err))
 	} else {
 		s.pruneLeakEvents(ctx)
+		alert.S().Send(ctx, alert.AlertEvent{
+			Type:      alert.AlertMemLeak,
+			Level:     alert.LevelCritical,
+			Title:     "内存泄漏风险告警",
+			Message:   fmt.Sprintf("检测到疑似堆内存泄漏：净增分配空间 %s，对象增长 %d", formatBytes(inuseDelta), objectDelta),
+			Timestamp: time.Now(),
+			Details: map[string]any{
+				"inuseDelta":   formatBytes(inuseDelta),
+				"objectDelta":  objectDelta,
+				"currentAlloc": formatBytes(int64(ms.HeapAlloc)),
+			},
+		})
 	}
 
 	_ = pruneProfiles(logDir, "heap_leak_", leakProfileKeepCount, leakProfileMaxAge)
+}
+
+func formatBytes(b int64) string {
+	const unit = 1024
+	if b < 0 {
+		return fmt.Sprintf("%d B", b)
+	}
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.2f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
 type profilePoint struct {

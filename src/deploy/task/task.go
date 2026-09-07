@@ -4,6 +4,7 @@ import (
 	"context"
 	ers "errors"
 	"fmt"
+	"github.com/jom-io/gorig-om/src/alert"
 	"github.com/jom-io/gorig-om/src/deploy"
 	"github.com/jom-io/gorig-om/src/deploy/app"
 	deployEnv "github.com/jom-io/gorig-om/src/deploy/env"
@@ -11,6 +12,7 @@ import (
 	"github.com/jom-io/gorig/cronx"
 	"github.com/jom-io/gorig/global/variable"
 	"github.com/jom-io/gorig/mid/messagex"
+	configure "github.com/jom-io/gorig/utils/cofigure"
 	"github.com/jom-io/gorig/utils/errors"
 	"github.com/jom-io/gorig/utils/logger"
 	"github.com/jom-io/gorig/utils/sys"
@@ -597,13 +599,123 @@ func (t taskService) StartedListen() {
 		}
 		item.Running(fmt.Sprintf("Watchdog service started."))
 		item.Running(fmt.Sprintf("Task item started: %s, pid: %s", item.ID, pid), Light)
-		item.Status = Success
-		item.FinishAt = time.Now()
 		item.Storage = cachePage
-		item.RBStatus = Ready
-		item.Running(fmt.Sprintf("Deploy task finished successfully"), Light)
+
+		if strings.TrimSpace(item.HealthCheckURL) != "" {
+			go t.runHealthCheckProbe(logger.NewCtx(), item, cachePage)
+		} else {
+			item.Status = Success
+			item.FinishAt = time.Now()
+			item.RBStatus = Ready
+			item.Running(fmt.Sprintf("Deploy task finished successfully"), Light)
+		}
 		return nil
 	})
+}
+
+func (t taskService) runHealthCheckProbe(ctx context.Context, item *TaskRecord, cachePage cache.Pager[TaskRecord]) {
+	targetURL := strings.TrimSpace(item.HealthCheckURL)
+	if !strings.HasPrefix(targetURL, "http://") && !strings.HasPrefix(targetURL, "https://") {
+		port := configure.GetString("api.rest.addr", ":19617")
+		if strings.HasPrefix(port, ":") {
+			port = "127.0.0.1" + port
+		}
+		if !strings.HasPrefix(targetURL, "/") {
+			targetURL = "/" + targetURL
+		}
+		targetURL = fmt.Sprintf("http://%s%s", port, targetURL)
+	}
+
+	timeoutSec := item.HealthCheckTimeout
+	if timeoutSec <= 0 {
+		timeoutSec = 30
+	}
+
+	item.Running(fmt.Sprintf("Running health check probe against: %s (timeout: %ds)...", targetURL, timeoutSec), Light)
+	deadline := time.Now().Add(time.Duration(timeoutSec) * time.Second)
+	client := &http.Client{Timeout: 3 * time.Second}
+
+	passed := false
+	var lastErr error
+
+	for time.Now().Before(deadline) {
+		time.Sleep(2 * time.Second)
+		req, rErr := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
+		if rErr != nil {
+			lastErr = rErr
+			continue
+		}
+		resp, dErr := client.Do(req)
+		if dErr != nil {
+			lastErr = dErr
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+			passed = true
+			break
+		} else {
+			lastErr = fmt.Errorf("HTTP status %d", resp.StatusCode)
+		}
+	}
+
+	if passed {
+		item.Running("Health check probe passed! Service is healthy.", Light)
+		item.Status = Success
+		item.FinishAt = time.Now()
+		item.RBStatus = Ready
+		item.Running("Deploy task finished successfully", Light)
+		return
+	}
+
+	failMsg := fmt.Sprintf("Health check failed after %ds: %v", timeoutSec, lastErr)
+	item.Running(failMsg, Error)
+	item.Status = Failed
+	item.FinishAt = time.Now()
+	item.Running("Deploy task failed due to health check timeout", Error)
+
+	alert.S().Send(ctx, alert.AlertEvent{
+		Type:      alert.AlertDeployFail,
+		Level:     alert.LevelCritical,
+		Title:     "服务部署健康检查探针失败",
+		Message:   fmt.Sprintf("任务 [%s] 部署完成后未能通过健康检查: %v", item.ID, lastErr),
+		Timestamp: time.Now(),
+		Details: map[string]any{
+			"taskId":    item.ID,
+			"repo":      item.Repo,
+			"branch":    item.Branch,
+			"targetUrl": targetURL,
+		},
+	})
+
+	if item.AutoRollback {
+		item.Running("Auto-rollback enabled, initiating rollback to previous version...", Warn)
+		go func() {
+			time.Sleep(1 * time.Second)
+			t.triggerAutoRollback(logger.NewCtx(), item)
+		}()
+	}
+}
+
+func (t taskService) triggerAutoRollback(ctx context.Context, currentItem *TaskRecord) {
+	cachePage := cache.NewPager[TaskRecord](ctx, cache.Sqlite)
+	items, err := cachePage.Find(1, 10, map[string]any{
+		"rbStatus": Ready,
+		"id":       map[string]any{"$ne": currentItem.ID},
+	}, cache.PageSorterDesc("finishAt"))
+
+	if err != nil || items == nil || len(items.Items) == 0 {
+		currentItem.Running("Auto-rollback aborted: No previous backup found ready for rollback", Error)
+		return
+	}
+
+	target := items.Items[0]
+	currentItem.Running(fmt.Sprintf("Found backup from task %s (finishAt: %s), rolling back now...", target.ID, target.FinishAt.Format("2006-01-02 15:04:05")), Light)
+	if rbErr := t.Rollback(ctx, target.ID); rbErr != nil {
+		currentItem.Running(fmt.Sprintf("Auto-rollback execution failed: %v", rbErr), Error)
+	} else {
+		currentItem.Running("Auto-rollback completed successfully", Light)
+	}
 }
 
 func (t taskService) timeOut() {

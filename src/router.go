@@ -4,9 +4,11 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jom-io/gorig-om/src/alert"
 	"github.com/jom-io/gorig-om/src/deploy/app"
 	dpGit "github.com/jom-io/gorig-om/src/deploy/env"
 	dpTask "github.com/jom-io/gorig-om/src/deploy/task"
+	"github.com/jom-io/gorig-om/src/diag"
 	"github.com/jom-io/gorig-om/src/host"
 	"github.com/jom-io/gorig-om/src/logtool"
 	"github.com/jom-io/gorig-om/src/mid"
@@ -104,6 +106,17 @@ func Setup() {
 			e.GET("mem/leak/latest", memstat.LeakLatest)
 			e.GET("mem/leak/count", memstat.LeakCount)
 			e.GET("mem/leak/page", memstat.LeakPage)
+
+			alt := om.Group("alert")
+			alt.GET("config", alert.GetConfig)
+			alt.POST("config", alert.SaveConfig)
+			alt.POST("test", alert.TestSend)
+
+			d := om.Group("diag")
+			d.GET("goroutines", diag.GetGoroutines)
+			d.GET("goroutines/raw", diag.GetRawGoroutines)
+			d.GET("cpu/profile", diag.GetCPUProfile)
+			d.GET("heap/profile", diag.GetHeapProfile)
 		})
 	})
 }
