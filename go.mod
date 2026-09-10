@@ -1,4 +1,4 @@
-module github.com/jom-io/gorig-om
+module github.com/WnJee/gorig-om
 
 go 1.23.0
 
