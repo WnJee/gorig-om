@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jom-io/gorig-om/src/diag"
+	"github.com/WnJee/gorig-om/src/diag"
 )
 
 func TestDiagGoroutinesClustering(t *testing.T) {

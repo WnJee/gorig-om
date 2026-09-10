@@ -8,7 +8,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/jom-io/gorig-om/src/stat/gorstat"
+	"github.com/WnJee/gorig-om/src/stat/gorstat"
 	"github.com/jom-io/gorig/cache"
 )
 

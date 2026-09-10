@@ -23,7 +23,7 @@ Gorig-OM is the operations management panel for the [Gorig](https://github.com/j
 First, install the package:
 
 ```bash
-go get github.com/jom-io/gorig-om@latest
+go get github.com/WnJee/gorig-om@latest
 ```
 
 Then, add the following configuration to your Gorig project:
@@ -40,7 +40,7 @@ Call `om.Setup()` in your main function before starting the application:
 ```go
 import (
     "github.com/jom-io/gorig/bootstrap"
-    om "github.com/jom-io/gorig-om/src"
+    om "github.com/WnJee/gorig-om/src"
 )
 
 func main() {
@@ -100,7 +100,7 @@ Gorig-OM 是 [Gorig](https://github.com/jom-io/gorig) 项目的运维管理面�
 首先，安装包：
 
 ```bash
-go get github.com/jom-io/gorig-om@latest
+go get github.com/WnJee/gorig-om@latest
 ```
 
 然后，在您的 Gorig 项目中添加以下配置：
@@ -117,7 +117,7 @@ om:
 ```go
 import (
     "github.com/jom-io/gorig/bootstrap"
-    om "github.com/jom-io/gorig-om/src"
+    om "github.com/WnJee/gorig-om/src"
 )
 
 func main() {

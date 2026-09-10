@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
-	"github.com/jom-io/gorig-om/src/logtool"
+	"github.com/WnJee/gorig-om/src/logtool"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/cronx"
 	"github.com/jom-io/gorig/global/variable"

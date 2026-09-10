@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jom-io/gorig-om/src/logtool"
+	"github.com/WnJee/gorig-om/src/logtool"
 )
 
 func writeSearchTestLog(t *testing.T, path, prefix string, count int) {

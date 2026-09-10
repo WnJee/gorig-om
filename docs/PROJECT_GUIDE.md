@@ -1,6 +1,6 @@
 # Gorig-OM 项目指南（架构 · 二开 · 维护）
 
-> 本文档面向二次开发与维护人员，基于源码分析整理（go.mod: `github.com/jom-io/gorig-om`，Go 1.23，gorig v0.0.53-0.20260205102704-ca4d73b27ac3）。README 介绍"怎么用"，本文介绍"怎么改、怎么维护"。
+> 本文档面向二次开发与维护人员，基于源码分析整理（go.mod: `github.com/WnJee/gorig-om`，Go 1.23，gorig v0.0.53-0.20260205102704-ca4d73b27ac3）。README 介绍"怎么用"，本文介绍"怎么改、怎么维护"。
 
 ---
 

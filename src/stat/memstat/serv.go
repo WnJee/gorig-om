@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/WnJee/gorig-om/src/alert"
 	"github.com/google/pprof/profile"
-	"github.com/jom-io/gorig-om/src/alert"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/global/variable"
 	configure "github.com/jom-io/gorig/utils/cofigure"

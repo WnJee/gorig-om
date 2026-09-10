@@ -12,7 +12,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/jom-io/gorig-om/src/stat/apistat"
+	"github.com/WnJee/gorig-om/src/stat/apistat"
 	"github.com/jom-io/gorig/cache"
 )
 

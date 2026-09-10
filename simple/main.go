@@ -1,7 +1,7 @@
 package main
 
 import (
-	om "github.com/jom-io/gorig-om/src"
+	om "github.com/WnJee/gorig-om/src"
 	"github.com/jom-io/gorig/bootstrap"
 )
 

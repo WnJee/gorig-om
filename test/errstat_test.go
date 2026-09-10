@@ -2,7 +2,7 @@ package test
 
 import (
 	"context"
-	"github.com/jom-io/gorig-om/src/stat/errstat"
+	"github.com/WnJee/gorig-om/src/stat/errstat"
 	"github.com/jom-io/gorig/utils/logger"
 	"testing"
 	"time"

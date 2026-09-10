@@ -3,8 +3,8 @@ package test
 import (
 	"context"
 	"fmt"
+	"github.com/WnJee/gorig-om/src/logtool"
 	"github.com/gin-gonic/gin"
-	"github.com/jom-io/gorig-om/src/logtool"
 	"github.com/rs/xid"
 	"net/http/httptest"
 	"os"

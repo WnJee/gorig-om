@@ -1,7 +1,7 @@
 package test
 
 import (
-	dpTask "github.com/jom-io/gorig-om/src/deploy/task"
+	dpTask "github.com/WnJee/gorig-om/src/deploy/task"
 	"github.com/jom-io/gorig/utils/logger"
 	"testing"
 )

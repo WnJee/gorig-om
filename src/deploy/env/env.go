@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/jom-io/gorig-om/src/deploy"
+	"github.com/WnJee/gorig-om/src/deploy"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/utils/errors"
 	"github.com/jom-io/gorig/utils/logger"

@@ -16,8 +16,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/jom-io/gorig-om/src/logtool"
-	"github.com/jom-io/gorig-om/src/stat/apistat"
+	"github.com/WnJee/gorig-om/src/logtool"
+	"github.com/WnJee/gorig-om/src/stat/apistat"
 	"github.com/jom-io/gorig/cache"
 )
 

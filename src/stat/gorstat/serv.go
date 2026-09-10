@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jom-io/gorig-om/src/alert"
+	"github.com/WnJee/gorig-om/src/alert"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/cronx"
 	"github.com/jom-io/gorig/global/variable"

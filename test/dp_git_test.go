@@ -1,7 +1,7 @@
 package test
 
 import (
-	deploy "github.com/jom-io/gorig-om/src/deploy/env"
+	deploy "github.com/WnJee/gorig-om/src/deploy/env"
 	"github.com/jom-io/gorig/utils/logger"
 	"testing"
 )

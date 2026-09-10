@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jom-io/gorig-om/src/alert"
+	"github.com/WnJee/gorig-om/src/alert"
 )
 
 func TestAlertConfig(t *testing.T) {

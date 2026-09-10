@@ -1,8 +1,8 @@
 package mid
 
 import (
+	"github.com/WnJee/gorig-om/src/omuser"
 	"github.com/gin-gonic/gin"
-	"github.com/jom-io/gorig-om/src/omuser"
 	"github.com/jom-io/gorig/apix/response"
 	"github.com/jom-io/gorig/mid/tokenx"
 	"strings"

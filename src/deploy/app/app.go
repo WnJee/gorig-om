@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/jom-io/gorig-om/src/alert"
-	"github.com/jom-io/gorig-om/src/deploy"
+	"github.com/WnJee/gorig-om/src/alert"
+	"github.com/WnJee/gorig-om/src/deploy"
 	"github.com/jom-io/gorig/cache"
 	"github.com/jom-io/gorig/global/variable"
 	"github.com/jom-io/gorig/mid/messagex"
