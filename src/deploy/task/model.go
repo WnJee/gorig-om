@@ -9,9 +9,9 @@ import (
 )
 
 type TaskOptions struct {
-	GitInit            bool         `json:"gitInit" form:"gitInit" binding:"required"`
-	GoInit             bool         `json:"goInit" form:"goInit" binding:"required"`
-	SshKeyCopy         bool         `json:"sshKeyCopy" form:"sshKeyCopy" binding:"required"`
+	GitInit            bool         `json:"gitInit" form:"gitInit"`
+	GoInit             bool         `json:"goInit" form:"goInit"`
+	SshKeyCopy         bool         `json:"sshKeyCopy" form:"sshKeyCopy"`
 	Repo               string       `json:"repo" form:"repo" binding:"required"`
 	Branch             string       `json:"branch" form:"branch" binding:"required"`
 	OtherRepos         *[]OtherRepo `json:"otherRepos" form:"otherRepos"`
@@ -115,9 +115,11 @@ func (t *TaskRecord) Running(log string, level ...TaskRecordLogLevel) {
 	if logLevel == Error {
 		t.Status = Failed
 		t.FinishAt = time.Now()
-	} else if t.Status == Waiting {
+	} else if t.Status == Waiting || (t.Status == Running && t.StartAt.IsZero()) {
 		t.Status = Running
-		t.StartAt = time.Now()
+		if t.StartAt.IsZero() {
+			t.StartAt = time.Now()
+		}
 	}
 
 	if err := t.Storage.Update(map[string]any{"id": t.ID}, t); err != nil {
