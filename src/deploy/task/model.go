@@ -3,8 +3,8 @@ package task
 import (
 	"context"
 	"fmt"
-	"github.com/jom-io/gorig/cache"
-	"github.com/jom-io/gorig/utils/logger"
+	"github.com/WnJee/gorig/cache"
+	"github.com/WnJee/gorig/utils/logger"
 	"time"
 )
 

@@ -2,9 +2,9 @@ package host
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jom-io/gorig/apix"
-	"github.com/jom-io/gorig/cache"
-	"github.com/jom-io/gorig/global/consts"
+	"github.com/WnJee/gorig/apix"
+	"github.com/WnJee/gorig/cache"
+	"github.com/WnJee/gorig/global/consts"
 )
 
 func Usage(ctx *gin.Context) {

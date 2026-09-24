@@ -5,10 +5,10 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
+	github.com/WnJee/gorig v0.0.0-20260924042653-ff3ddd5f6da0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e
-	github.com/jom-io/gorig v0.0.53-0.20260205102704-ca4d73b27ac3
 	github.com/rs/xid v1.5.0
 	github.com/shirou/gopsutil/v4 v4.25.4
 	github.com/spf13/cast v1.6.0
@@ -23,7 +23,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.8.2 // indirect
@@ -37,6 +36,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gookit/color v1.5.4 // indirect
@@ -100,3 +100,5 @@ require (
 	modernc.org/memory v1.9.1 // indirect
 	modernc.org/sqlite v1.37.0 // indirect
 )
+
+replace github.com/WnJee/gorig => ../gorig

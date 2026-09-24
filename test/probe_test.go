@@ -8,8 +8,8 @@ import (
 	"time"
 
 	dpTask "github.com/WnJee/gorig-om/src/deploy/task"
-	"github.com/jom-io/gorig/cache"
-	"github.com/jom-io/gorig/utils/logger"
+	"github.com/WnJee/gorig/cache"
+	"github.com/WnJee/gorig/utils/logger"
 	"github.com/rs/xid"
 )
 

@@ -16,11 +16,11 @@ import (
 
 	"github.com/WnJee/gorig-om/src/alert"
 	"github.com/google/pprof/profile"
-	"github.com/jom-io/gorig/cache"
-	"github.com/jom-io/gorig/global/variable"
-	configure "github.com/jom-io/gorig/utils/cofigure"
-	"github.com/jom-io/gorig/utils/errors"
-	"github.com/jom-io/gorig/utils/logger"
+	"github.com/WnJee/gorig/cache"
+	"github.com/WnJee/gorig/global/variable"
+	configure "github.com/WnJee/gorig/utils/cofigure"
+	"github.com/WnJee/gorig/utils/errors"
+	"github.com/WnJee/gorig/utils/logger"
 	"go.uber.org/zap"
 )
 

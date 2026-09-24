@@ -13,7 +13,7 @@ import (
 	"unsafe"
 
 	"github.com/WnJee/gorig-om/src/stat/apistat"
-	"github.com/jom-io/gorig/cache"
+	"github.com/WnJee/gorig/cache"
 )
 
 type apiTestReq struct {

@@ -2,7 +2,7 @@ package test
 
 import (
 	deploy "github.com/WnJee/gorig-om/src/deploy/app"
-	"github.com/jom-io/gorig/utils/logger"
+	"github.com/WnJee/gorig/utils/logger"
 	"testing"
 )
 

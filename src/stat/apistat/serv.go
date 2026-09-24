@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/WnJee/gorig-om/src/logtool"
-	"github.com/jom-io/gorig/cache"
-	"github.com/jom-io/gorig/cronx"
-	"github.com/jom-io/gorig/global/variable"
-	"github.com/jom-io/gorig/utils/errors"
-	"github.com/jom-io/gorig/utils/logger"
+	"github.com/WnJee/gorig/cache"
+	"github.com/WnJee/gorig/cronx"
+	"github.com/WnJee/gorig/global/variable"
+	"github.com/WnJee/gorig/utils/errors"
+	"github.com/WnJee/gorig/utils/logger"
 	"go.uber.org/zap"
 )
 

@@ -18,7 +18,7 @@ import (
 
 	"github.com/WnJee/gorig-om/src/logtool"
 	"github.com/WnJee/gorig-om/src/stat/apistat"
-	"github.com/jom-io/gorig/cache"
+	"github.com/WnJee/gorig/cache"
 )
 
 func TestApiStatRestLogFile(t *testing.T) {

@@ -2,7 +2,7 @@ package main
 
 import (
 	om "github.com/WnJee/gorig-om/src"
-	"github.com/jom-io/gorig/bootstrap"
+	"github.com/WnJee/gorig/bootstrap"
 )
 
 func main() {

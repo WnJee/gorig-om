@@ -3,11 +3,11 @@ package test
 import (
 	"context"
 	"github.com/WnJee/gorig-om/src/stat/errstat"
-	"github.com/jom-io/gorig/utils/logger"
+	"github.com/WnJee/gorig/utils/logger"
 	"testing"
 	"time"
 
-	"github.com/jom-io/gorig/cache"
+	"github.com/WnJee/gorig/cache"
 )
 
 func TestErrStatWorkflow(t *testing.T) {

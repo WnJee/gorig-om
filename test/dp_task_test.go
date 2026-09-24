@@ -2,7 +2,7 @@ package test
 
 import (
 	dpTask "github.com/WnJee/gorig-om/src/deploy/task"
-	"github.com/jom-io/gorig/utils/logger"
+	"github.com/WnJee/gorig/utils/logger"
 	"testing"
 )
 

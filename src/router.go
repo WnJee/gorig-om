@@ -17,8 +17,8 @@ import (
 	"github.com/WnJee/gorig-om/src/stat/gorstat"
 	"github.com/WnJee/gorig-om/src/stat/memstat"
 	"github.com/gin-gonic/gin"
-	"github.com/jom-io/gorig/global/variable"
-	"github.com/jom-io/gorig/httpx"
+	"github.com/WnJee/gorig/global/variable"
+	"github.com/WnJee/gorig/httpx"
 )
 
 var setupOnce sync.Once

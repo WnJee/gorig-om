@@ -3,8 +3,8 @@ package mid
 import (
 	"github.com/WnJee/gorig-om/src/omuser"
 	"github.com/gin-gonic/gin"
-	"github.com/jom-io/gorig/apix/response"
-	"github.com/jom-io/gorig/mid/tokenx"
+	"github.com/WnJee/gorig/apix/response"
+	"github.com/WnJee/gorig/mid/tokenx"
 	"strings"
 )
 

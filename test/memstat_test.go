@@ -9,7 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/WnJee/gorig-om/src/stat/memstat"
-	"github.com/jom-io/gorig/cache"
+	"github.com/WnJee/gorig/cache"
 )
 
 func TestMemStatBigTop(t *testing.T) {

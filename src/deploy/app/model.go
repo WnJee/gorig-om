@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"github.com/jom-io/gorig/cache"
-	"github.com/jom-io/gorig/utils/errors"
+	"github.com/WnJee/gorig/cache"
+	"github.com/WnJee/gorig/utils/errors"
 	"time"
 )
 

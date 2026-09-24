@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/WnJee/gorig-om/src/host"
-	"github.com/jom-io/gorig/cache"
+	"github.com/WnJee/gorig/cache"
 	"testing"
 	"time"
 )

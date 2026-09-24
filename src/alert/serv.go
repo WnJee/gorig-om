@@ -16,9 +16,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jom-io/gorig/cache"
-	"github.com/jom-io/gorig/utils/errors"
-	"github.com/jom-io/gorig/utils/logger"
+	"github.com/WnJee/gorig/cache"
+	"github.com/WnJee/gorig/utils/errors"
+	"github.com/WnJee/gorig/utils/logger"
 )
 
 const (

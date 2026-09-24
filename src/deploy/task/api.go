@@ -2,8 +2,8 @@ package task
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jom-io/gorig/apix"
-	"github.com/jom-io/gorig/global/consts"
+	"github.com/WnJee/gorig/apix"
+	"github.com/WnJee/gorig/global/consts"
 )
 
 func SaveConfig(ctx *gin.Context) {
