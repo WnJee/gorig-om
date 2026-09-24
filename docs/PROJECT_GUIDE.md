@@ -6,7 +6,7 @@
 
 ## 1. 项目定位
 
-Gorig-OM 是 [Gorig](https://github.com/jom-io/gorig) 框架的**运维管理后端**（Operations & Maintenance），以 Go 库形式发布。宿主 Gorig 应用只需 import 本包，即可获得一组挂在 `/om/**` 前缀下的运维 HTTP 接口：
+Gorig-OM 是 [Gorig](https://github.com/WnJee/gorig) 框架的**运维管理后端**（Operations & Maintenance），以 Go 库形式发布。宿主 Gorig 应用只需 import 本包，即可获得一组挂在 `/om/**` 前缀下的运维 HTTP 接口：
 
 - 应用进程重启 / 停止 / 看门狗（watchdog）
 - Git + Go 环境检测安装、SSH Key 管理、Go env 配置
@@ -15,7 +15,7 @@ Gorig-OM 是 [Gorig](https://github.com/jom-io/gorig) 框架的**运维管理后
 - 统计监控：API 延迟、错误签名、协程趋势、内存大对象 / 泄漏检测
 - 主机资源采集（CPU / 内存 / 磁盘）
 
-前端面板独立部署：<https://jom-io.github.io/gorig-om>（基于 Slash Admin）。
+前端面板独立部署：<https://WnJee.github.io/gorig-om>（基于 Slash Admin）。
 
 ### 总体形态
 
@@ -50,7 +50,7 @@ httpx.RegisterRouter() 挂载 /om 路由组 ──► mid.Sign() JWT 鉴权
 
 | 依赖 | 用途 |
 |---|---|
-| `github.com/jom-io/gorig` | 主框架：bootstrap/httpx/apix/cache/cronx/messagex/tokenx/logger/errors |
+| `github.com/WnJee/gorig` | 主框架：bootstrap/httpx/apix/cache/cronx/messagex/tokenx/logger/errors |
 | `gin-gonic/gin` | HTTP 路由（经 gorig httpx 封装） |
 | `shirou/gopsutil/v4` | 主机 CPU/内存/磁盘/进程指标采集 |
 | `google/pprof` (`profile`) | 解析 heap profile，用于内存大对象与泄漏 diff |
@@ -439,7 +439,7 @@ func Xxx(ctx *gin.Context) {
 
 ### 版本升级 / 依赖
 
-- gorig 使用的是伪版本 `v0.0.53-0.20260205102704-ca4d73b27ac3`（非 tag）。升级时用 `go get github.com/jom-io/gorig@<commit>`，然后核对 apix/cache/cronx/tokenx 签名是否变化。
+- gorig 使用的是伪版本 `v0.0.53-0.20260205102704-ca4d73b27ac3`（非 tag）。升级时用 `go get github.com/WnJee/gorig@<commit>`，然后核对 apix/cache/cronx/tokenx 签名是否变化。
 - 验证命令：`go build ./... && go vet ./src/...`；测试在 `test/`，跑法 `go test ./test/ -run TestApiStatWorkflow` 等（部分测试依赖真实环境：dp_git/dp_task 需要 git 与网络，host_test 会真实采集 15s）。
 
 ---
@@ -485,4 +485,4 @@ curl -X POST :9617/om/auth/connect -d '{"pwd":"$pwd_hash"}'
 # 之后所有请求带 Authorization: Bearer <token>
 ```
 
-> 前端面板地址：<https://jom-io.github.io/gorig-om> ，连接时填宿主地址与 `om.key`。
+> 前端面板地址：<https://WnJee.github.io/gorig-om> ，连接时填宿主地址与 `om.key`。

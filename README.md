@@ -5,7 +5,7 @@
 <a id="english"></a>
 # Gorig-OM
 
-Gorig-OM is the operations management panel for the [Gorig](https://github.com/jom-io/gorig) project, providing an intuitive web interface to manage and monitor your Gorig services.
+Gorig-OM is the operations management panel for the [Gorig](https://github.com/WnJee/gorig) project, providing an intuitive web interface to manage and monitor your Gorig services.
 
 ## Features
 
@@ -39,7 +39,7 @@ Call `om.Setup()` in your main function before starting the application:
 
 ```go
 import (
-    "github.com/jom-io/gorig/bootstrap"
+    "github.com/WnJee/gorig/bootstrap"
     om "github.com/WnJee/gorig-om/src"
 )
 
@@ -55,7 +55,7 @@ func main() {
 
 After configuration, you can access the operations panel at:
 
-[https://jom-io.github.io/gorig-om](https://jom-io.github.io/gorig-om)
+[https://WnJee.github.io/gorig-om](https://WnJee.github.io/gorig-om)
 
 Use the `om.key` you set in the configuration for access authentication.
 
@@ -67,7 +67,7 @@ Use the `om.key` you set in the configuration for access authentication.
 
 ## Related Projects
 
-- [Gorig](https://github.com/jom-io/gorig) - Main project repository
+- [Gorig](https://github.com/WnJee/gorig) - Main project repository
 
 ## Credits
 
@@ -82,7 +82,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <a id="chinese"></a>
 # Gorig-OM
 
-Gorig-OM 是 [Gorig](https://github.com/jom-io/gorig) 项目的运维管理面板，提供了一个直观的 Web 界面来管理和监控您的 Gorig 服务。
+Gorig-OM 是 [Gorig](https://github.com/WnJee/gorig) 项目的运维管理面板，提供了一个直观的 Web 界面来管理和监控您的 Gorig 服务。
 
 ## 功能特点
 
@@ -116,7 +116,7 @@ om:
 
 ```go
 import (
-    "github.com/jom-io/gorig/bootstrap"
+    "github.com/WnJee/gorig/bootstrap"
     om "github.com/WnJee/gorig-om/src"
 )
 
@@ -132,7 +132,7 @@ func main() {
 
 配置完成后，您可以通过以下地址访问运维面板：
 
-[https://jom-io.github.io/gorig-om](https://jom-io.github.io/gorig-om)
+[https://WnJee.github.io/gorig-om](https://WnJee.github.io/gorig-om)
 
 使用您在配置中设置的 `om.key` 进行访问认证。
 
@@ -144,7 +144,7 @@ func main() {
 
 ## 相关项目
 
-- [Gorig](https://github.com/jom-io/gorig) - 主项目仓库
+- [Gorig](https://github.com/WnJee/gorig) - 主项目仓库
 
 ## 致谢
 

@@ -138,7 +138,7 @@ func TestFixStatSingletonsConcurrency(t *testing.T) {
 func TestFixTaskStartWithHash(t *testing.T) {
 	ctx := logger.NewCtx()
 	_ = dpTask.Task.SaveConfig(ctx, dpTask.TaskOptions{
-		Repo:   "git@github.com-jom:jom-io/gorig.git",
+		Repo:   "git@github.com:WnJee/gorig.git",
 		Branch: "main",
 	})
 	err := dpTask.Task.Start(ctx, false, "abc1234")

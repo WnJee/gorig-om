@@ -29,7 +29,7 @@ func TestProbeSuccess(t *testing.T) {
 	record := dpTask.TaskRecord{
 		ID: taskID,
 		TaskOptions: dpTask.TaskOptions{
-			Repo:               "git@github.com-jom:jom-io/gorig.git",
+			Repo:               "git@github.com:WnJee/gorig.git",
 			Branch:             "main",
 			HealthCheckURL:     server.URL,
 			HealthCheckTimeout: 4,
@@ -70,7 +70,7 @@ func TestProbeSuccess(t *testing.T) {
 func TestTaskOptionsHealthCheckFields(t *testing.T) {
 	ctx := logger.NewCtx()
 	opts := dpTask.TaskOptions{
-		Repo:               "git@github.com-jom:jom-io/gorig.git",
+		Repo:               "git@github.com:WnJee/gorig.git",
 		Branch:             "main",
 		HealthCheckURL:     "http://127.0.0.1:8080/healthz",
 		HealthCheckTimeout: 15,

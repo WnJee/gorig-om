@@ -10,7 +10,7 @@ func TestSaveTask(t *testing.T) {
 	ctx := logger.NewCtx()
 
 	if e := dpTask.Task.SaveConfig(ctx, dpTask.TaskOptions{
-		Repo:   "git@github.com-jom:jom-io/gorig.git",
+		Repo:   "git@github.com:WnJee/gorig.git",
 		Branch: "test",
 	}); e != nil {
 		t.Errorf("Error: %v", e)

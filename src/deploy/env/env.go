@@ -253,7 +253,7 @@ func (c envService) GetLatestHash(ctx context.Context, repo, branch string) stri
 		logger.Warn(ctx, "Repository URL or branch is empty")
 		return ""
 	}
-	//  git ls-remote git@github.com-jom:jom-io/gorig.git refs/heads/master
+	//  git ls-remote git@github.com:WnJee/gorig.git refs/heads/master
 	hash, err := deploy.RunCommand(ctx, "git", nil, "ls-remote", "--heads", repo, branch)
 	if err != nil {
 		logger.Warn(ctx, fmt.Sprintf("Failed to retrieve latest git hash, err:%v", err))
